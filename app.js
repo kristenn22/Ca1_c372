@@ -55,11 +55,6 @@ const validateRegistration = (req, res, next) => {
     next();
 };
 
-// Mount routers
-const productRoutes = require('./routes/productRoutes');
-const userRoutes = require('./routes/userRoutes');
-const cartRoutes = require('./routes/cartRoutes');
-
 // Pass multer and middleware to routers if needed
 app.use((req, res, next) => {
     req.upload = upload;
@@ -74,10 +69,27 @@ app.get('/', (req, res) => {
     res.render('index', { user: req.session.user });
 });
 
-// Use routers
-app.use(productRoutes);
-app.use(userRoutes);
-app.use(cartRoutes);
+// health endpoint
+app.get('/__health', (req, res) => res.send('OK'));
+
+// Attempt to require and mount routers inside try/catch so startup errors are reported
+let startupError = null;
+try {
+    const productRoutes = require('./routes/productRoutes');
+    const userRoutes = require('./routes/userRoutes');
+    const cartRoutes = require('./routes/cartRoutes');
+
+    app.use(productRoutes);
+    app.use(userRoutes);
+    app.use(cartRoutes);
+} catch (err) {
+    // capture the error and expose it via an endpoint so the server can start
+    console.error('Router require error:', err);
+    startupError = err;
+    app.get('/__startup_error', (req, res) => {
+        res.status(500).send(`Startup error: ${err && err.message ? err.message : String(err)}`);
+    });
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

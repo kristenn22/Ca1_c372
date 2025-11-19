@@ -1,6 +1,8 @@
+// models/Products.js
 const db = require('../db');
 
 module.exports = {
+
   getAll: () => {
     return new Promise((resolve, reject) => {
       db.query('SELECT * FROM products', (err, results) => {
@@ -17,6 +19,10 @@ module.exports = {
         resolve(results[0]);
       });
     });
+  },
+
+  getProductById: (id, callback) => {
+    db.query('SELECT * FROM products WHERE id = ?', [id], callback);
   },
 
   add: (product) => {
@@ -47,4 +53,5 @@ module.exports = {
       });
     });
   }
+
 };
