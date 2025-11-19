@@ -11,12 +11,27 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Simple auth / admin middleware (session-based)
+const ensureAuth = (req, res, next) => {
+	if (req.session && req.session.user) return next();
+	req.flash('error', 'Please log in to continue');
+	res.redirect('/login');
+};
+const ensureAdmin = (req, res, next) => {
+	if (req.session && req.session.user && req.session.user.role === 'admin') return next();
+	req.flash('error', 'Access denied');
+	res.redirect('/shopping');
+};
+
 // Routes
-router.get('/products', ProductController.listProducts);
-router.get('/products/:id', ProductController.getProductById);
-router.post('/products/add', upload.single('image'), ProductController.addProduct);
-router.post('/products/update/:id', upload.single('image'), ProductController.updateProduct);
-router.get('/products/delete/:id', ProductController.deleteProduct);
+router.get('/products', ensureAuth, ProductController.listProducts);
+router.get('/shopping', ensureAuth, ProductController.listProducts);
+router.get('/products/:id', ensureAuth, ProductController.getProductById);
+router.get('/addProduct', ensureAuth, ensureAdmin, ProductController.renderAddForm);
+router.post('/products/add', ensureAuth, ensureAdmin, upload.single('image'), ProductController.addProduct);
+router.get('/updateProduct/:id', ensureAuth, ensureAdmin, ProductController.renderUpdateForm);
+router.post('/products/update/:id', ensureAuth, ensureAdmin, upload.single('image'), ProductController.updateProduct);
+router.get('/products/delete/:id', ensureAuth, ensureAdmin, ProductController.deleteProduct);
 
 module.exports = router;
 
