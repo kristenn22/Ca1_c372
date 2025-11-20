@@ -77,10 +77,9 @@ const userRoutes = require('./routes/userRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const productRoutes = require('./routes/productRoutes');
 
-// IMPORTANT: load in correct order
-app.use(userRoutes);
-app.use(cartRoutes);
-app.use(productRoutes);
+app.use("/user",userRoutes);
+app.use("/cart", cartRoutes);
+app.use("/product",productRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
