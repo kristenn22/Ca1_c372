@@ -3,8 +3,6 @@ const path = require('path');
 const session = require('express-session');
 const flash = require('connect-flash');
 const multer = require('multer');
-
-// Controllers (adapted to this project)
 const UserController = require('./controllers/userController');
 const ProductController = require('./controllers/productController');
 const CartController = require('./controllers/cartController');
@@ -62,11 +60,6 @@ const checkAuthorised = (roles = []) => (req, res, next) => {
 
 // Home
 app.get('/', (req, res) => res.render('index', { user: req.session.user }));
-
-// debug session endpoint
-app.get('/__session', (req, res) => {
-    res.json({ session: req.session });
-});
 
 // Auth routes
 app.get('/login', UserController.renderLogin);

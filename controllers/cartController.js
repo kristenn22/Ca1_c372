@@ -1,76 +1,68 @@
-const Product = require("../models/Products");
+const Product = require('../models/Products');
 
 module.exports = {
 
   addToCart: async (req, res) => {
-    try {
-      const productId = req.params.id;
-      const quantity = parseInt(req.body.quantity) || 1;
+    const id = req.body.productId;
+    const quantity = parseInt(req.body.quantity) || 1;
 
-      const product = await Product.getById(productId);
-      if (!product) return res.status(404).send("Product not found");
+    console.log("Adding productId:", id);
 
-      if (!req.session.cart) req.session.cart = [];
-
-      let existing = req.session.cart.find(item => item.id == productId);
-
-      if (existing) {
-        existing.quantity += quantity;
-      } else {
-        req.session.cart.push({
-          id: product.id,
-          productName: product.productName,
-          price: product.price,
-          quantity: quantity,
-          image: product.image
-        });
-      }
-
-      return res.redirect("/cart");
-
-    } catch (err) {
-      console.error(err);
-      res.status(500).send("Error adding to cart");
+    const product = await Product.getById(id);
+    if (!product) {
+      req.flash("error", "Product not found");
+      return res.redirect("/shopping");
     }
+
+    if (!req.session.cart) req.session.cart = [];
+    let cart = req.session.cart;
+
+    let existing = cart.find(item => item.id == id);
+
+    if (existing) {
+      existing.quantity += quantity;
+    } else {
+      cart.push({
+        id: product.id,
+        name: product.productName,   
+        price: product.price,
+        image: product.image,
+        quantity
+      });
+    }
+
+    req.flash("success", `${product.productName} added to cart`);
+
+    return res.redirect("/cart");
   },
 
   showCart: (req, res) => {
-    res.render("cart", {
-      user: req.session.user,
-      cart: req.session.cart || []
-    });
+    const cart = req.session.cart || [];
+    res.render("cart", { cart });
   },
 
   removeItem: (req, res) => {
     const id = req.params.id;
-    req.session.cart = req.session.cart.filter(item => item.id != id);
+    req.session.cart = (req.session.cart || []).filter(item => item.id != id);
+    req.flash("success", "Item removed");
     res.redirect("/cart");
   },
 
   updateQuantity: (req, res) => {
     const id = req.params.id;
-    const action = req.body.action;
+    const qty = parseInt(req.body.quantity);
+    const cart = req.session.cart || [];
+    
+    let item = cart.find(i => i.id == id);
+    if (item) item.quantity = qty;
 
-    if (!req.session.cart) req.session.cart = [];
-
-    let item = req.session.cart.find(i => i.id == id);
-
-    if (item) {
-      if (action === "increase") {
-        item.quantity++;
-      } 
-      else if (action === "decrease" && item.quantity > 1) {
-        item.quantity--;
-      }
-    }
-
+    req.flash("success", "Quantity updated");
     res.redirect("/cart");
   },
 
-  clearCart:(req, res) => {
+  clearCart: (req, res) => {
     req.session.cart = [];
+    req.flash("success", "Cart cleared");
     res.redirect("/cart");
   }
-
 };
-

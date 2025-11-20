@@ -1,16 +1,34 @@
 const User = require('../models/User');
 
 module.exports = {
+  // RENDER REGISTER PAGE
   renderRegister: (req, res) => {
-    res.render('register', { messages: req.flash('error'), formData: req.flash('formData')[0] });
+    res.render('register', { 
+      messages: req.flash('error'), 
+      formData: req.flash('formData')[0] 
+    });
   },
 
+  // REGISTER USER
   register: async (req, res) => {
     try {
       const { username, email, password, address, contact, role } = req.body;
-      await User.createUser({ username, email, password, address, contact, role });
+
+      // Default role if none provided
+      const finalRole = role || 'user';
+
+      await User.createUser({ 
+        username, 
+        email, 
+        password, 
+        address, 
+        contact, 
+        role: finalRole 
+      });
+
       req.flash('success', 'Registration successful! Please log in.');
       res.redirect('/login');
+
     } catch (err) {
       console.error(err);
       req.flash('error', 'Registration failed');
@@ -19,28 +37,50 @@ module.exports = {
     }
   },
 
+  // RENDER LOGIN PAGE
   renderLogin: (req, res) => {
-    res.render('login', { messages: req.flash('success'), errors: req.flash('error') });
+    res.render('login', { 
+      messages: req.flash('success'), 
+      errors: req.flash('error') 
+    });
   },
 
+  // LOGIN USER
   login: async (req, res) => {
     try {
       const { email, password } = req.body;
       console.log('Login attempt for:', email);
+
       if (!email || !password) {
         req.flash('error', 'All fields are required.');
         return res.redirect('/login');
       }
+
       const user = await User.findByEmailAndPassword(email, password);
       console.log('Login result user:', !!user);
+
       if (user) {
+        // Ensure role is always lowercase to avoid comparison issues
+        user.role = user.role ? user.role.toLowerCase() : 'user';
+
         req.session.user = user;
+        console.log("User session stored:", req.session.user);
+
         req.flash('success', 'Login successful!');
-        if (req.session.user.role == 'user') return res.redirect('/shopping');
-        return res.redirect('/products');
+
+
+        // REDIRECT BASED ON ROLE
+        if (user.role === 'admin') {
+          return res.redirect('/products');  // admin product management
+        }
+
+        // Default & normal user redirect
+        return res.redirect('/shopping');
       }
+
       req.flash('error', 'Invalid email or password.');
       res.redirect('/login');
+
     } catch (err) {
       console.error(err);
       req.flash('error', 'Login failed');
@@ -48,19 +88,22 @@ module.exports = {
     }
   },
 
+  // LOGOUT
   logout: (req, res) => {
     req.session.destroy(() => {
       res.redirect('/');
     });
-  }
-,
+  },
 
+  // SHOW PROFILE
   showProfile: (req, res) => {
     const user = req.session.user;
+
     if (!user) {
       req.flash('error', 'Please log in to view your profile');
       return res.redirect('/login');
     }
+
     res.render('profile', { user });
   }
 };

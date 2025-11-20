@@ -39,59 +39,63 @@
             <th width="100">Product Image</th>
             <th width="50">Quantity</th>
             <th width="50">Price</th>
-            <th width="50">Quantity</th>
+            <th width="50">Buy Qty</th>
             <th width="50">Buy</th>
           </tr>
       </thead>
-<tbody>
-  <% for (let i = 0; i < products.length; i++) { %>
-    <tr>
+      <tbody>
+        <% for (let i = 0; i < products.length; i++) { %>
+          <tr>
 
-      <!-- Product Details Link -->
-      <td>
-        <a href="/product/<%= products[i].id %>">
-          <%= products[i].productName %>
-        </a>
-      </td>
+            <!-- Product Name -->
+            <td class="align-middle">
+              <a href="/product/<%= products[i].id %>">
+                <%= products[i].productName %>
+              </a>
+            </td>
 
-      <!-- Product Image -->
-      <td>
-        <img src="/images/<%= products[i].image %>" width="20%">
-      </td>
+            <!-- Product Image -->
+            <td class="align-middle">
+              <img src="/images/<%= products[i].image %>" width="60">
+            </td>
 
-      <td><%= products[i].quantity %></td>
+            <!-- Stock -->
+            <td class="align-middle"><%= products[i].quantity %></td>
 
-      <td>$<%= products[i].price.toFixed(2) %></td>
+            <!-- Price -->
+            <td class="align-middle">$<%= products[i].price.toFixed(2) %></td>
 
-      <!-- Quantity selector -->
-      <td>
-        <select class="form-control"
-                onchange="document.getElementById('quantity-<%= products[i].id %>').value = this.value">
+          <!-- Buy Qty -->
+          <td class="align-middle">
+            <input 
+              type="number" 
+              id="qtyInput-<%= products[i].id %>"
+              value="1" 
+              min="1" 
+              class="form-control text-center"
+              style="width:60px; margin:auto;"
+              onchange="document.getElementById('qtyHidden-<%= products[i].id %>').value = this.value"
+            >
+          </td>
 
-          <% for (let q = 1; q <= 5; q++) { %>
-            <option value="<%= q %>"><%= q %></option>
-          <% } %>
+          <!-- Buy Button -->
+          <td class="align-middle">
+            <form action="/cart/add" method="POST">
+              <input type="hidden" name="productId" value="<%= products[i].id %>">
 
-        </select>
-      </td>
+              <!-- Hidden quantity that will be updated based on visible input -->
+              <input type="hidden" 
+                    name="quantity" 
+                    id="qtyHidden-<%= products[i].id %>" 
+                    value="1">
 
-      <!-- Buy Button -->
-      <td>
-        <form action="/add-to-cart/<%= products[i].id %>" method="POST">
-          <input type="hidden" name="quantity"
-                 id="quantity-<%= products[i].id %>"
-                 value="1">
+              <button type="submit" class="btn btn-primary w-100">Buy</button>
+            </form>
+          </td>
 
-          <button type="submit" class="btn btn-primary mt-3">
-            Buy
-          </button>
-        </form>
-      </td>
-
-    </tr>
-  <% } %>
-</tbody>
-
+          </tr>
+        <% } %>
+      </tbody>
     </table>
   </div>
 </body>
