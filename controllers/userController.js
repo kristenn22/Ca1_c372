@@ -26,11 +26,13 @@ module.exports = {
   login: async (req, res) => {
     try {
       const { email, password } = req.body;
+      console.log('Login attempt for:', email);
       if (!email || !password) {
         req.flash('error', 'All fields are required.');
         return res.redirect('/login');
       }
       const user = await User.findByEmailAndPassword(email, password);
+      console.log('Login result user:', !!user);
       if (user) {
         req.session.user = user;
         req.flash('success', 'Login successful!');
