@@ -47,7 +47,7 @@
         <% for(let i=0; i < products.length; i++) { %>
           <tr>
             <td>
-              <a href="/product/<%= products[i].productId %>">
+              <a href="/product/<%= products[i].id %>">
                 <%= products[i].productName %>
               </a>
             </td>
@@ -65,8 +65,7 @@
 
             <!-- Delete button -->
          <td>
-          <a href="/products/delete/<%= products[i].id %>" 
-            class="btn btn-danger btn-sm"
+          <a href="/products/delete/<%= products[i].id %>" class="btn btn-danger btn-sm"
             onclick="return confirm('Are you sure you want to delete this product?')">
             Delete
           </a>
