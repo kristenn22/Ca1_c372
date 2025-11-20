@@ -36,8 +36,10 @@
     <h2 class="text-center mb-4">Update Product</h2>
     
     <% if (product) { %>
-      <form action="/updateProduct/<%= product.id %>" method="POST" enctype="multipart/form-data" class="mx-auto" style="max-width: 500px;">
-        
+     <form action="/products/update/<%= product.id %>" 
+        method="POST" 
+        enctype="multipart/form-data"
+        class="mx-auto" style="max-width: 500px;">
         <div class="mb-3">
           <label for="name" class="form-label">Product Name</label>
           <input type="text" class="form-control" id="name" name="name" value="<%= product.productName %>" required>
@@ -66,7 +68,7 @@
 
         <div class="d-grid gap-2">
           <button type="submit" class="btn btn-primary">Update Product</button>
-          <a href="/inventory" class="btn btn-secondary">Back to Inventory</a>
+          <a href="/products" class="btn btn-secondary">Back to Inventory</a>
         </div>
       </form>
     <% } else { %>
