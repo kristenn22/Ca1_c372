@@ -7,7 +7,6 @@
 </head>
 <body>
 
-  <!-- Navbar -->
   <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="/">Supermarket App</a>
@@ -34,7 +33,7 @@
       <p>Your cart is empty.</p>
     <% } else { %>
 
-      <table class="table table-bordered">
+      <table class="table table-bordered mt-3">
         <thead>
           <tr>
             <th>Product</th>
@@ -47,8 +46,8 @@
 
         <tbody>
           <% let total = 0; %>
-          <% cart.forEach(item => { %>
 
+          <% cart.forEach(item => { %>
             <tr>
               <td><%= item.productName %></td>
 
@@ -56,18 +55,16 @@
                 <img src="/images/<%= item.image %>" width="80" class="img-thumbnail">
               </td>
 
-              <!-- Quantity Adjustor -->
               <td>
                 <form action="/cart/update/<%= item.id %>" method="POST" class="d-inline">
-                <button type="submit" name="action" value="decrease" class="btn btn-outline-secondary btn-sm"> - </button>
-                <button type="submit" name="action" value="increase" class="btn btn-outline-secondary btn-sm"> + </button>
-
+                  <button type="submit" name="action" value="decrease" class="btn btn-sm btn-outline-secondary">−</button>
+                  <span class="mx-2"><%= item.quantity %></span>
+                  <button type="submit" name="action" value="increase" class="btn btn-sm btn-outline-secondary">+</button>
                 </form>
               </td>
 
               <td>$<%= (item.price * item.quantity).toFixed(2) %></td>
 
-              <!-- Delete Single Item -->
               <td>
                 <form action="/cart/delete/<%= item.id %>" method="POST" class="d-inline">
                   <button type="submit" class="btn btn-danger btn-sm">Delete</button>
@@ -76,23 +73,21 @@
             </tr>
 
             <% total += item.price * item.quantity; %>
-
-          <% }); %>
+          <% }) %>
         </tbody>
       </table>
 
       <h4>Total: $<%= total.toFixed(2) %></h4>
 
-      <!-- Clear Cart -->
       <form action="/cart/clear" method="POST" class="mt-3">
-        <button class="btn btn-warning">Clear Cart</button>
+        <button type="submit" class="btn btn-warning">Clear Cart</button>
       </form>
 
-      <div class="mt-4">
-        <a href="/shopping" class="btn btn-secondary">Back to Shopping</a>
-      </div>
+      <a href="/shopping" class="btn btn-secondary mt-3">Back to Shopping</a>
+
     <% } %>
   </div>
 
 </body>
 </html>
+

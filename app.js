@@ -73,25 +73,14 @@ app.get('/', (req, res) => {
 app.get('/__health', (req, res) => res.send('OK'));
 
 // Attempt to require and mount routers inside try/catch so startup errors are reported
-let startupError = null;
-try {
-    const userRoutes = require('./routes/userRoutes');
-    const cartRoutes = require('./routes/cartRoutes');
-    const productRoutes = require('./routes/productRoutes');
+const userRoutes = require('./routes/userRoutes');
+const cartRoutes = require('./routes/cartRoutes');
+const productRoutes = require('./routes/productRoutes');
 
-    // Correct route order
-    app.use(userRoutes);   // login, register, logout
-    app.use(cartRoutes);   // cart
-    app.use(productRoutes); // product/admin routes 
-
-} catch (err) {
-    console.error('Router require error:', err);
-    startupError = err;
-    app.get('/__startup_error', (req, res) => {
-        res.status(500).send(`Startup error: ${err && err.message ? err.message : String(err)}`);
-    });
-}
-
+// IMPORTANT: load in correct order
+app.use(userRoutes);
+app.use(cartRoutes);
+app.use(productRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
