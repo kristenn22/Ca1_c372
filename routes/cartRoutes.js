@@ -2,20 +2,20 @@ const express = require("express");
 const router = express.Router();
 const cartController = require("../controllers/cartController");
 
-// Ensure the user is logged in
-const ensureAuth = (req, res, next) => {
-  if (req.session && req.session.user) return next();
-  req.flash("error", "Please login first");
-  res.redirect("/login");
-};
+// Show cart
+router.get("/cart", cartController.showCart);
 
-// add to cart
-router.post("/add-to-cart/:id", ensureAuth, cartController.addToCart);
+// Add to cart
+router.post("/add-to-cart/:id", cartController.addToCart);
 
-// show cart
-router.get("/cart", ensureAuth, cartController.showCart);
+// Delete a single item
+router.post("/cart/delete/:id", cartController.removeItem);
 
-// remove from cart
-router.get("/cart/remove/:id", ensureAuth, cartController.removeItem);
+// Update quantity (+ / -)
+router.post("/cart/update/:id", cartController.updateQuantity);
+
+// Clear cart
+router.post("/cart/clear", cartController.clearCart);
 
 module.exports = router;
+

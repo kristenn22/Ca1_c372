@@ -7,17 +7,11 @@ module.exports = {
       const productId = req.params.id;
       const quantity = parseInt(req.body.quantity) || 1;
 
-      // Fetch the product
       const product = await Product.getById(productId);
-
       if (!product) return res.status(404).send("Product not found");
 
-      // Initialize cart if empty
-      if (!req.session.cart) {
-        req.session.cart = [];
-      }
+      if (!req.session.cart) req.session.cart = [];
 
-      // If item exists, update qty
       let existing = req.session.cart.find(item => item.id == productId);
 
       if (existing) {
@@ -51,6 +45,32 @@ module.exports = {
     const id = req.params.id;
     req.session.cart = req.session.cart.filter(item => item.id != id);
     res.redirect("/cart");
+  },
+
+  updateQuantity: (req, res) => {
+    const id = req.params.id;
+    const action = req.body.action;
+
+    if (!req.session.cart) req.session.cart = [];
+
+    let item = req.session.cart.find(i => i.id == id);
+
+    if (item) {
+      if (action === "increase") {
+        item.quantity++;
+      } 
+      else if (action === "decrease" && item.quantity > 1) {
+        item.quantity--;
+      }
+    }
+
+    res.redirect("/cart");
+  },
+
+  clearCart:(req, res) => {
+    req.session.cart = [];
+    res.redirect("/cart");
   }
 
 };
+
