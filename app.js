@@ -109,6 +109,14 @@ app.get('/admin/dashboard',
     }
 );
 
+// DELETE PRODUCT (admin only)
+app.get(
+  '/products/delete/:id',
+  checkAuthenticated,
+  checkAuthorised(['admin']),
+  ProductController.deleteProduct
+);
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
