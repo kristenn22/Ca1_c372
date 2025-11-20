@@ -100,5 +100,15 @@ app.post('/cart/update', checkAuthenticated, (req, res) => {
     return CartController.updateQuantity(req, res);
 });
 
+// Admin Dashboard Route
+app.get('/admin/dashboard',
+    checkAuthenticated,
+    checkAuthorised(['admin']),
+    (req, res) => {
+        res.render('adminDashboard', { user: req.session.user });
+    }
+);
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
