@@ -46,6 +46,17 @@
                 <p><b>Product Quantity:</b><br> <%= product.quantity %></p>
                 <p><b>Price:</b><br> $<%= product.price.toFixed(2) %></p> 
             </div>
+             <% if (user.role === "admin") { %>
+            <a href="/updateProduct/<%= product.productId %>" class="btn btn-warning btn-sm">
+                Edit Product
+            </a>
+
+            <a href="/deleteProduct/<%= product.productId %>" 
+              onclick="return confirm('Are you sure you want to delete this product?')"
+              class="btn btn-danger btn-sm">
+              Delete Product
+            </a>
+        <% } %>
         <% } else { %>
             <p>No product found.</p>
         <% } %>
