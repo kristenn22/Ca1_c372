@@ -43,33 +43,6 @@
           <option value="paypal">PayPal</option>
         </select>
       </div>
-
-      <!-- Cart Table for Review -->
-      <h4 class="mt-4">Review Your Cart</h4>
-      <table class="table table-bordered mt-3">
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Quantity</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% let total = 0; %>
-          <% cart.forEach(item => { %>
-            <tr>
-              <td><%= item.name %></td>
-              <td><%= item.quantity %></td>
-              <td>$<%= (item.price * item.quantity).toFixed(2) %></td>
-            </tr>
-            <% total += item.price * item.quantity; %>
-          <% }) %>
-        </tbody>
-      </table>
-
-      <h4>Total: $<%= total.toFixed(2) %></h4>
-
-      <button type="submit" class="btn btn-success mt-3">Proceed with Payment</button>
     </form>
   </div>
 
