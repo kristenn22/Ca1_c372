@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Checkout</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+  <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">Supermarket App</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="collapsibleNavbar">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="/shopping">Shop</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/logout">Logout</a>
+          </li> 
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2 class="mt-4">Checkout</h2>
+
+    <form action="/checkout/submit" method="POST">
+
+      <div class="mb-3">
+        <label for="address" class="form-label">Shipping Address:</label>
+        <input type="text" class="form-control" id="address" name="address" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="paymentMethod" class="form-label">Payment Method:</label>
+        <select class="form-select" id="paymentMethod" name="paymentMethod" required>
+          <option value="credit-card">Credit Card</option>
+          <option value="paypal">PayPal</option>
+        </select>
+      </div>
+
+      <!-- Cart Table for Review -->
+      <h4 class="mt-4">Review Your Cart</h4>
+      <table class="table table-bordered mt-3">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Quantity</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% let total = 0; %>
+          <% cart.forEach(item => { %>
+            <tr>
+              <td><%= item.name %></td>
+              <td><%= item.quantity %></td>
+              <td>$<%= (item.price * item.quantity).toFixed(2) %></td>
+            </tr>
+            <% total += item.price * item.quantity; %>
+          <% }) %>
+        </tbody>
+      </table>
+
+      <h4>Total: $<%= total.toFixed(2) %></h4>
+
+      <button type="submit" class="btn btn-success mt-3">Proceed with Payment</button>
+    </form>
+  </div>
+
+</body>
+</html>
