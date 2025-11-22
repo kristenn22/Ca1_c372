@@ -100,9 +100,6 @@ app.post('/cart/update', checkAuthenticated, (req, res) => {
     return CartController.updateQuantity(req, res);
 });
 
-// Checkout route
-app.get('/checkout', checkAuthenticated, CartController.checkout);
-
 // Admin Dashboard Route
 app.get('/admin/dashboard',
     checkAuthenticated,
@@ -119,6 +116,10 @@ app.get(
   checkAuthorised(['admin']),
   ProductController.deleteProduct
 );
+
+// CHECKOUT ROUTES
+app.get('/cart/checkout', checkAuthenticated, CartController.checkout);
+app.post('/cart/checkout/submit', checkAuthenticated, CartController.submitCheckout);
 
 
 const PORT = process.env.PORT || 3000;
