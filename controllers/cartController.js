@@ -64,5 +64,29 @@ module.exports = {
     req.session.cart = [];
     req.flash("success", "Cart cleared");
     res.redirect("/cart");
+  },
+
+checkout: (req, res) => {
+  const cart = req.session.cart || [];
+
+  if (cart.length === 0) {
+      req.flash('error', 'Your cart is empty');
+      return res.redirect('/shopping');
   }
+
+  // Calculate subtotal
+    const subtotal = cart.reduce((total, item) => {
+      return total + item.price * item.quantity;
+    }, 0);
+
+    const shipping = cart.length > 0 ? 3.99 : 0;  
+    const total = subtotal + shipping;
+
+    res.render("checkout", {
+      cart,
+      subtotal,
+      shipping,
+      total
+    });
+  },
 };

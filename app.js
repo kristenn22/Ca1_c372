@@ -101,14 +101,7 @@ app.post('/cart/update', checkAuthenticated, (req, res) => {
 });
 
 // Checkout route
-app.get('/checkout', checkAuthenticated, (req, res) => {
-    const cart = req.session.cart || []; // Retrieve the cart from the session
-    if (cart.length === 0) {
-        req.flash('error', 'Your cart is empty');
-        return res.redirect('/shopping');
-    }
-    res.render('checkout', { cart });
-});
+app.get('/checkout', checkAuthenticated, CartController.checkout);
 
 // Admin Dashboard Route
 app.get('/admin/dashboard',
