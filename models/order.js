@@ -1,42 +1,65 @@
-const db = require('../db');
+const db = require("../db");
 
 module.exports = {
 
-  // Create the order
-  createOrder: async (userId, address, paymentMethod, subtotal, shipping, total) => {
-    const [result] = await db.execute(
-      `INSERT INTO orders (userId, address, paymentMethod, subtotal, shipping, total)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [userId, address, paymentMethod, subtotal, shipping, total]
-    );
+  //create order
+  createOrder: (userId, address, paymentMethod, subtotal, shipping, total) => {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        INSERT INTO orders (userId, address, paymentMethod, subtotal, shipping, total)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
 
-    return result.insertId;  // return new order ID
+      db.query(sql, [userId, address, paymentMethod, subtotal, shipping, total], (err, result) => {
+        if (err) return reject(err);
+        resolve(result.insertId);
+      });
+    });
   },
 
-  // Insert each item in the cart
-  addOrderItem: async (orderId, item) => {
-    await db.execute(
-      `INSERT INTO order_items (orderId, productId, productName, price, quantity)
-       VALUES (?, ?, ?, ?, ?)`,
-      [orderId, item.id, item.name, item.price, item.quantity]
-    );
+  //add order item
+  addOrderItem: (orderId, productId, productName, price, quantity) => {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        INSERT INTO order_items (orderId, productId, productName, price, quantity)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+
+      db.query(sql, [orderId, productId, productName, price, quantity], (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
   },
 
-  // Get all orders for a user
-  getOrdersByUser: async (userId) => {
-    const [rows] = await db.execute(
-      `SELECT * FROM orders WHERE userId = ? ORDER BY id DESC`,
-      [userId]
-    );
-    return rows;
+  //get orders by user
+  getOrdersByUser: (userId, callback) => {
+    const sql = `
+      SELECT * FROM orders
+      WHERE userId = ?
+      ORDER BY createdAt DESC
+    `;
+    db.query(sql, [userId], callback);
   },
 
-  // Get items inside an order
-  getOrderItems: async (orderId) => {
-    const [rows] = await db.execute(
-      `SELECT * FROM order_items WHERE orderId = ?`,
-      [orderId]
-    );
-    return rows;
+  //get invoice details
+  getInvoiceDetails: (orderId, callback) => {
+    const sql = `
+      SELECT 
+        o.id AS orderId,
+        o.address, 
+        o.paymentMethod, 
+        o.subtotal, 
+        o.shipping, 
+        o.total, 
+        o.createdAt,
+        oi.productName,
+        oi.price,
+        oi.quantity
+      FROM orders o
+      JOIN order_items oi ON o.id = oi.orderId
+      WHERE o.id = ?
+    `;
+    db.query(sql, [orderId], callback);
   }
 };

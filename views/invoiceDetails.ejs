@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Invoice #<%= rows[0].orderId %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">Supermarket App</a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+
+        <li class="nav-item">
+          <a class="nav-link" href="/shopping">Shop</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="/cart">Cart</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="/invoices">Invoices</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="/logout">Logout</a>
+        </li>
+
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-5 mb-5">
+
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h3 class="mb-0">Invoice #<%= rows[0].orderId %></h3>
+    </div>
+
+    <div class="card-body">
+
+      <!-- Order Info -->
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <p><strong>Date:</strong> <%= rows[0].createdAt.toLocaleString() %></p>
+          <p><strong>Address:</strong> <%= rows[0].address %></p>
+          <p><strong>Payment Method:</strong> <%= rows[0].paymentMethod %></p>
+        </div>
+      </div>
+
+      <hr>
+
+      <!-- Items Table -->
+      <h5 class="mb-3">Items</h5>
+
+      <table class="table table-bordered text-center align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Price</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <% rows.forEach(item => { %>
+            <tr>
+              <td><%= item.productName %></td>
+              <td><%= item.quantity %></td>
+              <td>$<%= Number(item.price).toFixed(2) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+
+      <div class="mt-4">
+
+        <p class="fs-5"><strong>Subtotal:</strong> $<%= Number(rows[0].subtotal).toFixed(2) %></p>
+        <p class="fs-5"><strong>Shipping:</strong> $<%= Number(rows[0].shipping).toFixed(2) %></p>
+
+        <h4 class="mt-3"><strong>Total: $<%= Number(rows[0].total).toFixed(2) %></strong></h4>
+
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <a href="/invoices" class="btn btn-secondary">Back to Invoices</a>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

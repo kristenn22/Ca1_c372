@@ -3,12 +3,10 @@ const Order = require('../models/order');
 
 module.exports = {
 
-  // add to cart
+  // ADD TO CART
   addToCart: async (req, res) => {
     const id = req.body.productId;
     const quantity = parseInt(req.body.quantity) || 1;
-
-    console.log("Adding productId:", id);
 
     const product = await Product.getById(id);
     if (!product) {
@@ -37,13 +35,13 @@ module.exports = {
     return res.redirect("/cart");
   },
 
-  //show cart
+  // SHOW CART
   showCart: (req, res) => {
     const cart = req.session.cart || [];
     res.render("cart", { cart });
   },
 
-  // to remove item
+  // REMOVE ITEM
   removeItem: (req, res) => {
     const id = req.params.id;
     req.session.cart = (req.session.cart || []).filter(item => item.id != id);
@@ -51,7 +49,7 @@ module.exports = {
     res.redirect("/cart");
   },
 
-// to update quantity
+  // UPDATE QUANTITY
   updateQuantity: (req, res) => {
     const id = req.params.id;
     const qty = parseInt(req.body.quantity);
@@ -64,14 +62,14 @@ module.exports = {
     res.redirect("/cart");
   },
 
-  // to clear cart
+  // CLEAR CART
   clearCart: (req, res) => {
     req.session.cart = [];
     req.flash("success", "Cart cleared");
     res.redirect("/cart");
   },
 
-// checkout page
+  // CHECKOUT PAGE
   checkout: (req, res) => {
     const cart = req.session.cart || [];
 
@@ -84,7 +82,7 @@ module.exports = {
       return total + item.price * item.quantity;
     }, 0);
 
-    const shipping = cart.length > 0 ? 3.99 : 0;
+    const shipping = 3.99;
     const total = subtotal + shipping;
 
     res.render("checkout", {
@@ -95,7 +93,7 @@ module.exports = {
     });
   },
 
-// submit checkout
+  // SUBMIT CHECKOUT (PLACE ORDER)
   submitCheckout: async (req, res) => {
 
     const cart = req.session.cart || [];
@@ -112,7 +110,7 @@ module.exports = {
     const shipping = 3.99;
     const total = subtotal + shipping;
 
-    // 1) Insert ORDER
+    // 1) Create ORDER
     const orderId = await Order.createOrder(
       userId,
       address,
@@ -122,15 +120,21 @@ module.exports = {
       total
     );
 
-    // 2) Insert ORDER ITEMS
+    // 2) Insert ORDER ITEMS (correct fields)
     for (const item of cart) {
-      await Order.addOrderItem(orderId, item);
+      await Order.addOrderItem(
+        orderId,
+        item.id,        // productId
+        item.name,      // productName
+        item.price,
+        item.quantity
+      );
     }
 
-    // 3) Clear Session Cart
+    // 3) Clear cart
     req.session.cart = [];
 
-    // 4) Redirect to Order Success Page
+    // 4) Redirect to order success page
     res.redirect(`/order-success/${orderId}`);
   }
 

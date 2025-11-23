@@ -121,6 +121,18 @@ app.get(
 app.get('/cart/checkout', checkAuthenticated, CartController.checkout);
 app.post('/cart/checkout/submit', checkAuthenticated, CartController.submitCheckout);
 
+// ORDER SUCCESS ROUTE
+app.get('/order-success/:orderId', checkAuthenticated, (req, res) => {
+    res.render('orderSuccess', { 
+    orderId: req.params.orderId 
+});
+});
+
+// ORDER ROUTES 
+const orderRoutes = require('./routes/orderRoutes');
+app.use('/', orderRoutes)
+
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

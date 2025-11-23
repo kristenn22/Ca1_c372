@@ -13,6 +13,8 @@ router.post("/add/:id", cartController.addToCart);
 router.get("/checkout", cartController.checkout);
 router.post("/checkout/submit", cartController.submitCheckout);
 
+//display invoice
+router.get("/invoice/:id", cartController.showInvoice);
 
 module.exports = router;
 
