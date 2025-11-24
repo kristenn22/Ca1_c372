@@ -55,6 +55,10 @@ module.exports = {
         resolve(result);
       });
     });
-  }
+  },
 
+   reduceQuantity: (productId, qty, callback) => {
+    const sql = 'UPDATE products SET quantity = quantity - ? WHERE id = ? AND quantity >= ?';
+    db.query(sql, [qty, productId, qty], callback);  // Ensures the quantity doesn't go negative
+  }
 };
