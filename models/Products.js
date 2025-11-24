@@ -25,6 +25,7 @@ module.exports = {
     db.query('SELECT * FROM products WHERE id = ?', [id], callback);
   },
 
+  // adds product to database
   add: (product) => {
     return new Promise((resolve, reject) => {
       const sql = 'INSERT INTO products (productName, quantity, price, image) VALUES (?, ?, ?, ?)';
@@ -35,6 +36,7 @@ module.exports = {
     });
   },
 
+  //updates product in database
   update: (id, product) => {
     return new Promise((resolve, reject) => {
       const sql = 'UPDATE products SET productName = ?, quantity = ?, price = ?, image = ? WHERE id = ?';
@@ -45,6 +47,7 @@ module.exports = {
     });
   },
 
+  //deletes product from database
   delete: (id) => {
     return new Promise((resolve, reject) => {
       db.query('DELETE FROM products WHERE id = ?', [id], (err, result) => {

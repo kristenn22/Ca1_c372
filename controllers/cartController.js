@@ -120,12 +120,12 @@ module.exports = {
       total
     );
 
-    // 2) Insert ORDER ITEMS (correct fields)
+    // 2) Insert order items
     for (const item of cart) {
       await Order.addOrderItem(
         orderId,
-        item.id,        // productId
-        item.name,      // productName
+        item.id,        
+        item.name,      
         item.price,
         item.quantity
       );
