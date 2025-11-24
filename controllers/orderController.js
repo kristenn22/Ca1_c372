@@ -2,7 +2,7 @@ const Order = require("../models/order");
 
 module.exports = {
   placeOrder: (req, res) => {
-    const userId = req.session.user.id;  // your session uses "id"
+    const userId = req.session.user.id;  //session uses "id"
     const cart = req.session.cart || [];
     const address = req.body.address;
     const paymentMethod = req.body.paymentMethod;
@@ -11,13 +11,13 @@ module.exports = {
     const shipping = 3.99;
     const total = subtotal + shipping;
 
-    // 1. Insert into orders table
+    //Insert into orders table
     Order.createOrder(userId, address, paymentMethod, subtotal, shipping, total, (err, result) => {
       if (err) throw err;
 
       const orderId = result.insertId;
 
-      // 2. Insert each item into order_items
+      //Insert each item into order_items
       cart.forEach(item => {
         Order.addOrderItem(
           orderId,
@@ -29,10 +29,10 @@ module.exports = {
         );
       });
 
-      // 3. Clear cart
+      //Clear cart
       req.session.cart = [];
 
-      // 4. Show success page
+      //Show success page
       res.render("ordersuccess", { orderId });
     });
   },
