@@ -32,7 +32,7 @@ module.exports = {
     }
 
     req.flash("success", `${product.productName} added to cart`);
-    return res.redirect("/cart");
+    return res.redirect("/shopping");
   },
 
   // SHOW CART
