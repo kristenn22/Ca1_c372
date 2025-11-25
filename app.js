@@ -6,6 +6,7 @@ const multer = require('multer');
 const UserController = require('./controllers/userController');
 const ProductController = require('./controllers/productController');
 const CartController = require('./controllers/cartController');
+const OrderController = require('./controllers/orderController');
 
 const app = express();
 
@@ -65,7 +66,6 @@ app.get('/', (req, res) => res.render('index', { user: req.session.user }));
 app.get('/login', UserController.renderLogin);
 app.post('/login', UserController.login);
 app.get('/logout', checkAuthenticated, UserController.logout);
-
 app.get('/register', UserController.renderRegister);
 app.post('/register', UserController.register);
 
@@ -82,10 +82,9 @@ app.post('/products/update/:id', checkAuthenticated, checkAuthorised(['admin']),
 
 app.get('/products/delete/:id', checkAuthenticated, checkAuthorised(['admin']), ProductController.deleteProduct);
 
-// Cart routes (using body params for add/remove/clear)
+// Cart routes
 app.get('/cart', checkAuthenticated, CartController.showCart);
 app.post('/cart/add', checkAuthenticated, (req, res) => {
-    // expect productId in body
     req.params.productId = req.body.productId || req.query.productId;
     return CartController.addToCart(req, res);
 });
@@ -100,6 +99,20 @@ app.post('/cart/update', checkAuthenticated, (req, res) => {
     return CartController.updateQuantity(req, res);
 });
 
+// Checkout routes
+app.get('/cart/checkout', checkAuthenticated, CartController.checkout);
+app.post('/cart/checkout/submit', checkAuthenticated, CartController.submitCheckout);
+
+// POST route for placing the order (should be used to submit the order form)
+app.post('/placeOrder', OrderController.placeOrder);  
+
+// Order routes
+app.get('/order-success/:orderId', checkAuthenticated, (req, res) => {
+    res.render('orderSuccess', { orderId: req.params.orderId });
+});
+app.get('/invoices', checkAuthenticated, OrderController.showInvoices);
+app.get('/invoice/:id', checkAuthenticated, OrderController.showInvoiceDetails);
+
 // Admin Dashboard Route
 app.get('/admin/dashboard',
     checkAuthenticated,
@@ -110,29 +123,7 @@ app.get('/admin/dashboard',
 );
 
 // DELETE PRODUCT (admin only)
-app.get(
-  '/products/delete/:id',
-  checkAuthenticated,
-  checkAuthorised(['admin']),
-  ProductController.deleteProduct
-);
-
-// CHECKOUT ROUTES
-app.get('/cart/checkout', checkAuthenticated, CartController.checkout);
-app.post('/cart/checkout/submit', checkAuthenticated, CartController.submitCheckout);
-
-// ORDER SUCCESS ROUTE
-app.get('/order-success/:orderId', checkAuthenticated, (req, res) => {
-    res.render('orderSuccess', { 
-    orderId: req.params.orderId 
-});
-});
-
-// ORDER ROUTES 
-const orderRoutes = require('./routes/orderRoutes');
-app.use('/', orderRoutes)
-
-
+app.get('/products/delete/:id', checkAuthenticated, checkAuthorised(['admin']), ProductController.deleteProduct);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
