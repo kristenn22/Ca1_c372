@@ -60,8 +60,8 @@ module.exports = {
       console.log('Login result user:', !!user);
 
       if (user) {
-        // Ensure role is always lowercase to avoid comparison issues
-        user.role = user.role ? user.role.toLowerCase() : 'user';
+        // Ensure role is normalized to avoid comparison issues
+        user.role = user.role ? user.role.toLowerCase().trim() : 'user';
 
         req.session.user = user;
         console.log("User session stored:", req.session.user);
@@ -71,7 +71,7 @@ module.exports = {
 
         // REDIRECT BASED ON ROLE
         if (user.role === 'admin') {
-          return res.redirect('/products');  // admin product management
+          return res.redirect('/adminDashboard');  // admin lands on dashboard
         }
 
         // Default & normal user redirect
