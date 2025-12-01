@@ -2,60 +2,49 @@ const Order = require("../models/order");
 const Product = require("../models/Products");  // Ensure you import Product model
 
 module.exports = {
-  placeOrder: (req, res) => {
-    const userId = req.session.user.id;  // session uses "id"
-    const cart = req.session.cart || [];
-    const address = req.body.address;
-    const paymentMethod = req.body.paymentMethod;
+  placeOrder: async (req, res) => {
+    try {
+      const userId = req.session.user.id;
+      const cart = req.session.cart || [];
+      const address = req.body.address;
+      const paymentMethod = req.body.paymentMethod;
 
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-    const shipping = 3.99;
-    const total = subtotal + shipping;
+      if (!cart.length) {
+        req.flash("error", "Your cart is empty");
+        return res.redirect("/shopping");
+      }
 
-    // Insert into orders table
-    Order.createOrder(userId, address, paymentMethod, subtotal, shipping, total, (err, result) => {
-      if (err) throw err;
+      const subtotal = cart.reduce((sum, item) => {
+        const qty = item.quantity ?? item.qty ?? 0;
+        return sum + item.price * qty;
+      }, 0);
 
-      const orderId = result.insertId;
+      const shipping = 3.99;
+      const total = subtotal + shipping;
 
-      // Flag to track when all items are processed
-      let processedItems = 0;
+      const orderId = await Order.createOrder(userId, address, paymentMethod, subtotal, shipping, total);
 
-      // Insert each item into order_items and reduce product quantity
-      cart.forEach(item => {
-        // Insert each item into order_items
-        Order.addOrderItem(
-          orderId,
-          item.id,          // productId
-          item.name,        // productName
-          item.price,
-          item.qty,
-          (err) => {
-            if (err) {
-              console.error(`Failed to add order item ${item.id}:`, err);
-            }
-            processedItems++;
+      for (const item of cart) {
+        const qty = item.quantity ?? item.qty ?? 1;
 
-            // Reduce product quantity in products table after item is added
-            Product.reduceQuantity(item.id, item.qty, (err) => {
-              if (err) {
-                console.error(`Failed to reduce quantity for product ${item.id}:`, err);
-              }
-              processedItems++;
+        await Order.addOrderItem(orderId, item.id, item.name, item.price, qty);
 
-              // Check if all items have been processed
-              if (processedItems === cart.length * 2) {  // Each item is processed twice
-                // Clear cart after all items have been processed
-                req.session.cart = [];
+        // Wrap reduceQuantity callback into a promise so we await stock updates as well
+        await new Promise((resolve, reject) => {
+          Product.reduceQuantity(item.id, qty, (err) => {
+            if (err) return reject(err);
+            resolve();
+          });
+        });
+      }
 
-                // Show success page
-                res.render("ordersuccess", { orderId });
-              }
-            });
-          }
-        );
-      });
-    });
+      req.session.cart = [];
+      return res.redirect(`/order-success/${orderId}`);
+    } catch (error) {
+      console.error("Error placing order:", error);
+      req.flash("error", "Could not place your order. Please try again.");
+      return res.redirect("/cart");
+    }
   },
 
   showInvoices: (req, res) => {
@@ -73,6 +62,25 @@ module.exports = {
     Order.getInvoiceDetails(orderId, (err, rows) => {
       if (err) throw err;
       res.render("invoiceDetails", { rows });
+    });
+  },
+
+  showOrderSuccess: (req, res) => {
+    const orderId = req.params.orderId;
+
+    Order.getInvoiceDetails(orderId, (err, rows) => {
+      if (err) {
+        console.error("Failed to load order invoice:", err);
+        req.flash("error", "Could not load order details.");
+        return res.redirect("/shopping");
+      }
+
+      if (!rows || rows.length === 0) {
+        req.flash("error", "Order not found.");
+        return res.redirect("/shopping");
+      }
+
+      return res.render("orderSuccess", { orderId, rows });
     });
   }
 };

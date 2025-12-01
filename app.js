@@ -107,9 +107,7 @@ app.post('/cart/checkout/submit', checkAuthenticated, CartController.submitCheck
 app.post('/placeOrder', OrderController.placeOrder);  
 
 // Order routes
-app.get('/order-success/:orderId', checkAuthenticated, (req, res) => {
-    res.render('orderSuccess', { orderId: req.params.orderId });
-});
+app.get('/order-success/:orderId', checkAuthenticated, OrderController.showOrderSuccess);
 app.get('/invoices', checkAuthenticated, OrderController.showInvoices);
 app.get('/invoice/:id', checkAuthenticated, OrderController.showInvoiceDetails);
 
