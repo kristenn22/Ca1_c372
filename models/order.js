@@ -61,5 +61,26 @@ module.exports = {
       WHERE o.id = ?
     `;
     db.query(sql, [orderId], callback);
+  },
+
+  //get all orders with user info (admin)
+  getAllOrders: (callback) => {
+    const sql = `
+      SELECT 
+        o.id AS orderId,
+        o.userId,
+        u.username,
+        u.email,
+        o.address,
+        o.paymentMethod,
+        o.subtotal,
+        o.shipping,
+        o.total,
+        o.createdAt
+      FROM orders o
+      LEFT JOIN users u ON u.id = o.userId
+      ORDER BY o.createdAt DESC
+    `;
+    db.query(sql, [], callback);
   }
 };

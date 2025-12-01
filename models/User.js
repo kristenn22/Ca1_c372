@@ -19,5 +19,15 @@ module.exports = {
         resolve(results[0]);
       });
     });
+  },
+
+  getAll: () => {
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT id, username, email, role, contact, address FROM users ORDER BY id DESC';
+      db.query(sql, (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
   }
 };

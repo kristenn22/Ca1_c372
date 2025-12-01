@@ -105,5 +105,17 @@ module.exports = {
     }
 
     res.render('profile', { user });
+  },
+
+  // LIST ALL USERS (admin)
+  listUsers: async (req, res) => {
+    try {
+      const users = await User.getAll();
+      return res.render('adminUsers', { users, user: req.session.user });
+    } catch (err) {
+      console.error(err);
+      req.flash('error', 'Unable to load users');
+      return res.redirect('/adminDashboard');
+    }
   }
 };

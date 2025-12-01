@@ -166,6 +166,23 @@ app.get('/adminDashboard',
     }
 );
 
+// Admin management routes
+app.get('/admin/orders',
+    checkAuthenticated,
+    checkAuthorised(['admin']),
+    OrderController.showAllInvoices
+);
+app.get('/admin/invoice/:id',
+    checkAuthenticated,
+    checkAuthorised(['admin']),
+    OrderController.showInvoiceDetails
+);
+app.get('/admin/users',
+    checkAuthenticated,
+    checkAuthorised(['admin']),
+    UserController.listUsers
+);
+
 // DELETE PRODUCT (admin only)
 app.get('/products/delete/:id', checkAuthenticated, checkAuthorised(['admin']), ProductController.deleteProduct);
 

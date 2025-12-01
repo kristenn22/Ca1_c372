@@ -82,5 +82,16 @@ module.exports = {
 
       return res.render("orderSuccess", { orderId, rows });
     });
+  },
+
+  showAllInvoices: (req, res) => {
+    Order.getAllOrders((err, orders) => {
+      if (err) {
+        console.error("Failed to load orders:", err);
+        req.flash("error", "Could not load orders.");
+        return res.redirect("/adminDashboard");
+      }
+      return res.render("adminInvoices", { orders, user: req.session.user });
+    });
   }
 };
