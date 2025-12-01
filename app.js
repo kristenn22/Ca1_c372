@@ -40,6 +40,7 @@ app.use((req, res, next) => {
     res.locals.session = req.session;
     res.locals.success = req.flash('success');
     res.locals.error = req.flash('error');
+    res.locals.currentPath = (req.path || '').toLowerCase();
     next();
 });
 
@@ -52,8 +53,12 @@ app.use((req, res, next) => {
     const isAdminArea = path.startsWith('/admin');
     const isAdminDashboardAlias = path.startsWith('/admindashboard');
     const isLogout = path.startsWith('/logout');
+    const isProductManagement = path.startsWith('/products')
+        || path.startsWith('/product')
+        || path.startsWith('/addproduct')
+        || path.startsWith('/updateproduct');
 
-    if (!isAdminArea && !isAdminDashboardAlias && !isLogout) {
+    if (!isAdminArea && !isAdminDashboardAlias && !isLogout && !isProductManagement) {
         return res.redirect('/adminDashboard');
     }
     return next();
@@ -104,7 +109,7 @@ app.get('/register', UserController.renderRegister);
 app.post('/register', UserController.register);
 
 // Product routes
-app.get('/products', checkAuthenticated, redirectAdminToDashboard, ProductController.listProducts);
+app.get('/products', checkAuthenticated, ProductController.listProducts);
 app.get('/shopping', checkAuthenticated, redirectAdminToDashboard, ProductController.listProducts);
 app.get('/product/:id', checkAuthenticated, ProductController.getProductById);
 
