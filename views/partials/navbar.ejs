@@ -12,26 +12,15 @@
         %>
           <% if (isAdmin) { %>
             <li class="nav-item">
-              <a class="nav-link" href="/adminDashboard">Admin Dashboard</a>
+              <a class="nav-link" href="/addProduct">Add Product</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/admin/orders">Manage Orders</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/admin/users">Manage Users</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/products">Manage Products</a>
-            </li>
-          <% } else { %>
+          <% } %>
+          <% if (!isAdmin) { %>
             <li class="nav-item">
               <a class="nav-link" href="/shopping">Shop</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="/cart">Cart</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/invoices">Invoices</a>
             </li>
           <% } %>
           <li class="nav-item">

@@ -91,7 +91,7 @@ module.exports = {
         req.flash("error", "Could not load orders.");
         return res.redirect("/adminDashboard");
       }
-      return res.render("adminInvoices", { orders, user: req.session.user });
+      return res.render("adminOrders", { orders, user: req.session.user });
     });
   }
 };
