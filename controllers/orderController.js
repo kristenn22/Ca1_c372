@@ -51,9 +51,18 @@ module.exports = {
     const userId = req.session.user.id;
 
     Order.getOrdersByUser(userId, (err, orders) => {
-      if (err) throw err;
+      if (err) {
+        console.error("Failed to load invoices:", err);
+        req.flash("error", "Could not load your invoices.");
+        return res.redirect("/shopping");
+      }
       res.render("invoices", { orders });
     });
+  },
+
+  // keep compatibility with older /orderHistory link
+  showOrderHistory: (req, res) => {
+    return module.exports.showInvoices(req, res);
   },
 
   showInvoiceDetails: (req, res) => {

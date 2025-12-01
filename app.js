@@ -148,6 +148,7 @@ app.post('/placeOrder', redirectAdminToDashboard, OrderController.placeOrder);
 // Order routes
 app.get('/order-success/:orderId', checkAuthenticated, redirectAdminToDashboard, OrderController.showOrderSuccess);
 app.get('/invoices', checkAuthenticated, redirectAdminToDashboard, OrderController.showInvoices);
+app.get('/orderHistory', checkAuthenticated, redirectAdminToDashboard, OrderController.showInvoices); // legacy path
 app.get('/invoice/:id', checkAuthenticated, redirectAdminToDashboard, OrderController.showInvoiceDetails);
 
 // Admin Dashboard Routes (with alias)
