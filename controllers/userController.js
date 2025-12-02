@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Cart = require('../models/Cart');
 
 module.exports = {
   // RENDER REGISTER PAGE
@@ -62,9 +63,19 @@ module.exports = {
       if (user) {
         // Ensure role is normalized to avoid comparison issues
         user.role = user.role ? user.role.toLowerCase().trim() : 'user';
+        // Normalize id shape for downstream use
+        user.id = user.id || user.userId || user.ID;
 
         req.session.user = user;
         console.log("User session stored:", req.session.user);
+
+        // Pull any saved cart items so the cart survives logout/login
+        try {
+          req.session.cart = await Cart.getCart(user.id);
+        } catch (cartErr) {
+          console.error("Failed to load saved cart for user:", cartErr);
+          req.session.cart = [];
+        }
 
         req.flash('success', 'Login successful!');
 

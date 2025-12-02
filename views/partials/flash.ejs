@@ -1,0 +1,28 @@
+<% if (success && success.length) { %>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <%= success.join('<br>') %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+<% } %>
+
+<% if (error && error.length) { %>
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <%= error.join('<br>') %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+<% } %>
+
+<script>
+  // Auto-dismiss flash messages after a short delay so they don't linger
+  setTimeout(() => {
+    document.querySelectorAll('.alert-dismissible')?.forEach(el => {
+      if (window.bootstrap?.Alert) {
+        const alert = bootstrap.Alert.getOrCreateInstance(el);
+        alert.close();
+      } else {
+        el.classList.remove('show');
+        el.remove();
+      }
+    });
+  }, 3500);
+</script>

@@ -1,11 +1,14 @@
 const Order = require("../models/order");
 const Product = require("../models/Products");  // Ensure you import Product model
+const Cart = require("../models/Cart");
 
 module.exports = {
   placeOrder: async (req, res) => {
     try {
-      const userId = req.session.user.id;
-      const cart = req.session.cart || [];
+      const userId = req.session.user.id || req.session.user.userId || req.session.user.ID;
+      const cart = (req.session.cart && req.session.cart.length)
+        ? req.session.cart
+        : await Cart.getCart(userId);
       const address = req.body.address;
       const paymentMethod = req.body.paymentMethod;
 
@@ -39,6 +42,7 @@ module.exports = {
       }
 
       req.session.cart = [];
+      await Cart.clearCart(userId);
       return res.redirect(`/order-success/${orderId}`);
     } catch (error) {
       console.error("Error placing order:", error);
