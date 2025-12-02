@@ -4,84 +4,235 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <title>Supermarket App</title>
+  <style>
+    body {
+      background: #f5f6fb;
+      color: #1c1d22;
+    }
+    .page-shell {
+      padding: 1.5rem 0 3rem;
+    }
+    .section-title {
+      font-weight: 700;
+      font-size: 1.4rem;
+      margin-bottom: 0.25rem;
+    }
+    .section-subtitle {
+      color: #6c757d;
+      font-size: 0.95rem;
+    }
+    .pill {
+      background: #eef1f7;
+      border-radius: 999px;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.9rem;
+      color: #394150;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .pill:hover {
+      border-color: #d7deeb;
+    }
+    .pill.active {
+      background: #edf5ff;
+      color: #0d6efd;
+      border-color: #cfe2ff;
+      font-weight: 600;
+    }
+    .search-box {
+      background: #fff;
+      border: 1px solid #e5e7ef;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(17, 24, 39, 0.06);
+      padding: 0.6rem 0.9rem;
+    }
+    .search-box input {
+      border: none;
+      outline: none;
+      width: 100%;
+      font-size: 0.95rem;
+    }
+    .product-card {
+      background: #fff;
+      border: 1px solid #e5e7ef;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
+      padding: 1rem;
+      position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 30px rgba(17, 24, 39, 0.12);
+    }
+    .product-img-wrap {
+      background: linear-gradient(135deg, #f8fbff, #f2f4ff);
+      border-radius: 12px;
+      padding: 0.75rem;
+      text-align: center;
+      min-height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .product-img-wrap img {
+      max-height: 150px;
+      object-fit: contain;
+    }
+    .price {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #1c1d22;
+    }
+    .old-price {
+      color: #98a1b3;
+      text-decoration: line-through;
+      margin-left: 0.35rem;
+      font-size: 0.95rem;
+    }
+    .deal-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: #ffebe6;
+      color: #d94c1a;
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid #ffd5c7;
+    }
+    .stock-chip {
+      background: #eef9f1;
+      color: #187a41;
+      padding: 0.25rem 0.5rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .action-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .qty-input {
+      max-width: 80px;
+    }
+    .card-footer {
+      margin-top: auto;
+    }
+    .mini-subtitle {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      margin: 0;
+    }
+  </style>
 </head>
 <body>
-    <%- include('partials/navbar') %>
-
-  <div class="container">
+  <%- include('partials/navbar') %>
+  <div class="container page-shell">
     <%- include('partials/flash') %>
-    <p>Welcome, <%= user.username %> (<%= user.role %>)</p>
-    <br>
-    <div class="text-center"><h2>Products from Supermarket</h2></div>
-    <br>
-    <table class="table table-hover small text-center">
-      <thead>
-          <tr>
-            <th width="100">Product Name</th>
-            <th width="100">Product Image</th>
-            <th width="50">Quantity</th>
-            <th width="50">Price</th>
-            <th width="50">Buy Qty</th>
-            <th width="50">Buy</th>
-          </tr>
-      </thead>
-      <tbody>
-        <% for (let i = 0; i < products.length; i++) { %>
-          <tr>
 
-            <!-- Product Name -->
-            <td class="align-middle">
-              <a href="/product/<%= products[i].id %>">
-                <%= products[i].productName %>
+    <div class="mb-3">
+      <p class="mini-subtitle mb-1">Welcome back, <%= user.username %> (<%= user.role %>)</p>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="section-title mb-0">What's hot now</div>
+        <button class="btn btn-link p-0 ms-auto text-decoration-none">See all</button>
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-4">
+      <div class="pill active">All</div>
+      <div class="flex-grow-1">
+        <div class="search-box d-flex align-items-center gap-2">
+          <i class="bi bi-search text-muted"></i>
+          <input type="text" placeholder="Search products" data-search>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <% products.forEach((product) => { %>
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 product-col" data-product-card data-name="<%= (product.productName || '').toLowerCase() %>">
+          <div class="product-card">
+            <span class="deal-badge">Deal</span>
+
+            <div class="product-img-wrap">
+              <a href="/product/<%= product.id %>">
+                <img src="/images/<%= product.image %>" alt="<%= product.productName %>">
               </a>
-            </td>
+            </div>
 
-            <!-- Product Image -->
-            <td class="align-middle">
-              <img src="/images/<%= products[i].image %>" width="60">
-            </td>
+            <div>
+              <a class="text-decoration-none text-dark fw-semibold" href="/product/<%= product.id %>">
+                <%= product.productName %>
+              </a>
+              <div class="mini-subtitle mt-1">Stock: <%= product.quantity %> available</div>
+            </div>
 
-            <!-- Stock -->
-            <td class="align-middle"><%= products[i].quantity %></td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="price">$<%= product.price.toFixed(2) %></div>
+              <div class="old-price">$<%= (product.price * 1.2).toFixed(2) %></div>
+            </div>
 
-            <!-- Price -->
-            <td class="align-middle">$<%= products[i].price.toFixed(2) %></td>
+            <div class="stock-chip">
+              <i class="bi bi-box-seam"></i>
+              Ready to ship
+            </div>
 
-          <!-- Buy Qty -->
-          <td class="align-middle">
-            <input 
-              type="number" 
-              id="qtyInput-<%= products[i].id %>"
-              value="1" 
-              min="1"
-              max="<%= products[i].quantity %>" 
-              class="form-control text-center"
-              style="width:60px; margin:auto;"
-              onchange="document.getElementById('qtyHidden-<%= products[i].id %>').value = this.value"
-            >
-          </td>
-
-          <!-- Buy Button -->
-          <td class="align-middle">
-            <form action="/cart/add" method="POST">
-              <input type="hidden" name="productId" value="<%= products[i].id %>">
-
-              <!-- Hidden quantity that will be updated based on visible input -->
-              <input type="hidden" 
-                    name="quantity" 
-                    id="qtyHidden-<%= products[i].id %>" 
-                    value="1">
-
-              <button type="submit" class="btn btn-primary w-100">Buy</button>
-            </form>
-          </td>
-
-          </tr>
-        <% } %>
-      </tbody>
-    </table>
+            <div class="card-footer">
+              <form action="/cart/add" method="POST" class="action-row">
+                <input type="hidden" name="productId" value="<%= product.id %>">
+                <input type="hidden" name="quantity" id="qtyHidden-<%= product.id %>" value="1">
+                <input
+                  type="number"
+                  id="qtyInput-<%= product.id %>"
+                  value="1"
+                  min="1"
+                  max="<%= product.quantity %>"
+                  class="form-control text-center qty-input"
+                  onchange="document.getElementById('qtyHidden-<%= product.id %>').value = this.value"
+                >
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                  <i class="bi bi-cart-plus me-1"></i>Add to cart
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
   </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.querySelector('[data-search]');
+      const cards = Array.from(document.querySelectorAll('[data-product-card]'));
+
+      const applyFilters = () => {
+        const term = (searchInput?.value || '').trim().toLowerCase();
+
+        cards.forEach(card => {
+          const name = (card.dataset.name || '').toLowerCase();
+
+          const matchesSearch = term === '' || name.includes(term);
+          card.style.display = matchesSearch ? '' : 'none';
+        });
+      };
+
+      if (searchInput) {
+        searchInput.addEventListener('input', applyFilters);
+      }
+    });
+  </script>
 </body>
 </html>
