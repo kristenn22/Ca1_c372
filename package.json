@@ -1,22 +1,25 @@
 {
-  "name": "supermarketapp",
+  "name": "supermarket-app",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Supermarket Payment Application",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
+    "axios": "^1.13.3",
     "connect-flash": "^0.1.1",
-    "dotenv": "^17.2.3",
-    "ejs": "^3.1.10",
-    "express": "^5.1.0",
-    "express-session": "^1.18.2",
-    "multer": "^2.0.1",
-    "mysql2": "^3.14.1",
-    "nodemon": "^3.1.10"
+    "dotenv": "^16.0.3",
+    "ejs": "^3.1.8",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "mongoose": "^7.0.0",
+    "multer": "^2.0.2",
+    "mysql2": "^3.16.1",
+    "paypal-rest-sdk": "^1.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
   }
 }

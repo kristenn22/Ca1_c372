@@ -1,3 +1,4 @@
+<!-- filepath: c:\Users\24027209\OneDrive - Republic Polytechnic\Desktop\C372 PAYTECH\CA\SupermarketApp\views\checkout.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,15 +42,14 @@
           <label class="form-label mt-3">Shipping Address:</label>
           <input type="text" class="form-control" name="address" required>
 
-          <label class="form-label mt-4">Payment Method:</label>
-          <select class="form-select" name="paymentMethod" required>
-            <option value="credit-card">Credit Card</option>
-            <option value="paypal">PayPal</option>
-          </select>
-
-          <button type="submit" class="btn btn-primary mt-4">Place Order</button>
-
         </form>
+
+        <!-- NETS QR Payment Button -->
+        <div class="mt-4">
+          <button type="button" class="btn btn-danger" id="netsQrBtn" style="width: 100%;">
+            <strong>Pay with NETS QR</strong>
+          </button>
+        </div>
 
       </div>
 
@@ -91,6 +91,42 @@
 
     </div>
   </div>
+
+  <script>
+    // NETS QR Button Handler
+    document.getElementById('netsQrBtn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      
+      // Get the total amount from the right section
+      const totalElement = document.querySelector('.summary-line.total span:last-child');
+      const totalText = totalElement.textContent.trim();
+      const cartTotal = parseFloat(totalText.replace('$', ''));
+
+      console.log('Initiating NETS QR payment with total:', cartTotal);
+
+      try {
+        // Send POST request to generate QR code
+        const response = await fetch('/generateNETSQR', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ cartTotal: cartTotal })
+        });
+
+        if (response.ok) {
+          // Get the HTML response and render it
+          const html = await response.text();
+          document.documentElement.innerHTML = html;
+        } else {
+          alert('Failed to generate QR code. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error generating QR code:', error);
+        alert('An error occurred. Please try again.');
+      }
+    });
+  </script>
 
 </body>
 </html>
