@@ -188,7 +188,8 @@ updateQuantity: async (req, res) => {
         cart,
         subtotal,
         shipping,
-        total
+        total,
+        paypalClientId: process.env.PAYPAL_CLIENT_ID || ''
       });
     } catch (err) {
       console.error("Failed to load checkout:", err);

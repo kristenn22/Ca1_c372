@@ -9,6 +9,7 @@ const ProductController = require('./controllers/productController');
 const CartController = require('./controllers/cartController');
 const OrderController = require('./controllers/orderController');
 const netsQr = require('./services/nets');
+const paypal = require('./services/paypal');
 
 const app = express();
 
@@ -199,6 +200,147 @@ app.get("/nets-qr/success", (req, res) => {
 });
 app.get("/nets-qr/fail", (req, res) => {
     res.render('netsTxnFailStatus', { message: 'Transaction Failed. Please try again.' });
+});
+
+// PayPal Payment Routes
+app.post('/api/paypal/create-order', checkAuthenticated, redirectAdminToDashboard, async (req, res) => {
+  try {
+    if (!req.session.user) {
+      console.warn('createOrder: user not logged in');
+      return res.status(401).json({ error: "User not logged in", message: "Please log in to continue" });
+    }
+
+    const userId = req.session.user.id || req.session.user.userId || req.session.user.ID;
+    
+    if (!userId) {
+      console.warn('createOrder: userId not found in session');
+      return res.status(401).json({ error: "User ID not found in session", message: "Session error" });
+    }
+
+    const { amount } = req.body;
+
+    console.log('createOrder: Creating PayPal order for amount:', amount);
+
+    if (!amount || amount <= 0) {
+      console.error('createOrder: refusing to create PayPal order because amount is not positive', { amount });
+      return res.status(400).json({ error: 'Cart total must be greater than zero', message: 'Invalid cart total' });
+    }
+
+    // Create PayPal order
+    const order = await paypal.createOrder(amount);
+
+    if (!order || !order.id) {
+      console.error('createOrder: PayPal createOrder returned unexpected payload:', order);
+      return res.status(502).json({ error: 'Failed to create PayPal order', details: order });
+    }
+
+    console.log('createOrder: PayPal order created:', order.id);
+
+    res.json({ success: true, orderId: order.id });
+  } catch (err) {
+    console.error("createOrder error:", err);
+    res.status(500).json({ error: "Failed to create order", message: err.message, details: err.toString() });
+  }
+});
+
+app.post('/api/paypal/pay', checkAuthenticated, redirectAdminToDashboard, async (req, res) => {
+  console.log("=== PAY ENDPOINT CALLED ===");
+  console.log("pay called with body:", req.body);
+  
+  try {
+    // Validate user is logged in
+    if (!req.session.user) {
+      console.warn('pay: user not logged in');
+      return res.status(401).json({ error: "User not logged in" });
+    }
+
+    const userId = req.session.user.id || req.session.user.userId || req.session.user.ID;
+    if (!userId) {
+      console.warn('pay: userId not found in session');
+      return res.status(401).json({ error: "User ID not found in session" });
+    }
+    
+    // Get the PayPal order ID from request
+    const { orderId } = req.body;
+    
+    if (!orderId) {
+      console.warn('pay: orderId not provided in request body');
+      return res.status(400).json({ error: "Order ID is required" });
+    }
+
+    console.log('pay: Capturing PayPal order:', orderId, 'for userId:', userId);
+
+    // Capture the PayPal payment
+    const capture = await paypal.captureOrder(orderId);
+    
+    console.log('pay: PayPal capture response status:', capture.status);
+
+    if (!capture || capture.status !== 'COMPLETED') {
+      console.error('pay: Payment not completed, status:', capture?.status);
+      return res.status(400).json({ error: "Payment was not completed", status: capture?.status });
+    }
+
+    // Get cart and create order
+    const Cart = require('./models/Cart');
+    const Order = require('./models/order');
+    const Product = require('./models/Products');
+
+    const cart = req.session.cart && req.session.cart.length > 0 
+      ? req.session.cart 
+      : await Cart.getCart(userId);
+
+    if (!cart || !cart.length) {
+      console.warn('pay: No items in cart for userId:', userId);
+      return res.status(400).json({ error: "No items in cart to process" });
+    }
+
+    console.log('pay: Found', cart.length, 'cart items for userId:', userId);
+
+    // Calculate totals
+    const subtotal = cart.reduce((sum, item) => {
+      const qty = item.quantity ?? item.qty ?? 0;
+      return sum + item.price * qty;
+    }, 0);
+
+    const shipping = 3.99;
+    const total = subtotal + shipping;
+
+    console.log('pay: Total amount calculated:', total);
+
+    const address = (req.body.address || '').trim();
+    console.log('pay: Provided address from request:', address);
+
+    // Create order in database
+    const dbOrderId = await Order.createOrder(userId, address, 'PayPal', subtotal, shipping, total);
+    console.log('pay: Order created in database with ID:', dbOrderId);
+
+    // Add order items
+    for (const item of cart) {
+      const qty = item.quantity ?? item.qty ?? 1;
+      await Order.addOrderItem(dbOrderId, item.id, item.name, item.price, qty);
+
+      // Update product quantity
+      await new Promise((resolve, reject) => {
+        Product.reduceQuantity(item.id, qty, (err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    }
+
+    console.log('pay: Order items added and stock decremented');
+
+    // Clear cart
+    req.session.cart = [];
+    await Cart.clearCart(userId);
+
+    console.log('pay: Cart cleared successfully');
+
+    res.json({ success: true, orderId: dbOrderId });
+  } catch (err) {
+    console.error("pay error:", err);
+    res.status(500).json({ error: "Failed to process payment", message: err.message, details: err.toString() });
+  }
 });
 
 // Endpoint for real-time payment status updates via Server-Sent Events (SSE)
