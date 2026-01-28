@@ -29,5 +29,19 @@ module.exports = {
         resolve(results);
       });
     });
+  },
+
+  getCount: () => {
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT COUNT(*) as count FROM users';
+      db.query(sql, (err, results) => {
+        if (err) {
+          console.error('Error getting user count:', err);
+          return reject(err);
+        }
+        const count = results && results[0] ? results[0].count : 0;
+        resolve(count);
+      });
+    });
   }
 };

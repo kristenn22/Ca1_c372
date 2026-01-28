@@ -82,5 +82,149 @@ module.exports = {
       ORDER BY o.createdAt DESC
     `;
     db.query(sql, [], callback);
+  },
+
+  //get count of all orders
+  getOrderCount: () => {
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT COUNT(*) as count FROM orders';
+      db.query(sql, (err, results) => {
+        if (err) {
+          console.error('Error getting order count:', err);
+          return reject(err);
+        }
+        const count = results && results[0] ? results[0].count : 0;
+        resolve(count);
+      });
+    });
+  },
+
+  //get count of orders for current month only
+  getMonthlyOrderCount: () => {
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT COUNT(*) as count FROM orders WHERE MONTH(createdAt) = MONTH(NOW()) AND YEAR(createdAt) = YEAR(NOW())';
+      db.query(sql, (err, results) => {
+        if (err) {
+          console.error('Error getting monthly order count:', err);
+          return reject(err);
+        }
+        const count = results && results[0] ? results[0].count : 0;
+        resolve(count);
+      });
+    });
+  },
+
+  //get count of pending orders
+  getPendingOrderCount: () => {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT COUNT(*) as count FROM orders WHERE createdAt > DATE_SUB(NOW(), INTERVAL 30 DAY) AND paymentMethod NOT IN ('Pending', 'Failed')`;
+      db.query(sql, (err, results) => {
+        if (err) {
+          console.error('Error getting pending order count:', err);
+          return reject(err);
+        }
+        const count = results && results[0] ? results[0].count : 0;
+        resolve(count);
+      });
+    });
+  },
+
+  //get total earnings for current month
+  getMonthlyEarnings: () => {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT COALESCE(SUM(total), 0) as earnings FROM orders WHERE MONTH(createdAt) = MONTH(NOW()) AND YEAR(createdAt) = YEAR(NOW())`;
+      db.query(sql, (err, results) => {
+        if (err) {
+          console.error('Error fetching monthly earnings:', err);
+          return reject(err);
+        }
+        const earnings = results && results[0] ? results[0].earnings : 0;
+        resolve(earnings);
+      });
+    });
+  },
+
+  //get transactions by date range
+  getTransactionsByDateRange: (filterType) => {
+    return new Promise((resolve, reject) => {
+      let dateCondition = '';
+      
+      switch(filterType) {
+        case 'today':
+          dateCondition = `DATE(o.createdAt) = CURDATE()`;
+          break;
+        case 'week':
+          dateCondition = `o.createdAt >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`;
+          break;
+        case 'month':
+          dateCondition = `MONTH(o.createdAt) = MONTH(NOW()) AND YEAR(o.createdAt) = YEAR(NOW())`;
+          break;
+        case 'year':
+          dateCondition = `YEAR(o.createdAt) = YEAR(NOW())`;
+          break;
+        case 'lastYear':
+          dateCondition = `YEAR(o.createdAt) = YEAR(NOW()) - 1`;
+          break;
+        default:
+          dateCondition = `1=1`;
+      }
+
+      const sql = `
+        SELECT 
+          o.id AS orderId,
+          o.userId,
+          u.username,
+          u.email,
+          o.paymentMethod,
+          o.subtotal,
+          o.shipping,
+          o.total,
+          o.createdAt,
+          DATE_FORMAT(o.createdAt, '%Y-%m-%d %H:%i') as formattedDate
+        FROM orders o
+        LEFT JOIN users u ON u.id = o.userId
+        WHERE ${dateCondition}
+        ORDER BY o.createdAt DESC
+      `;
+      
+      db.query(sql, (err, results) => {
+        if (err) {
+          console.error('Error fetching transactions:', err);
+          return reject(err);
+        }
+        resolve(results || []);
+      });
+    });
+  },
+
+  //get transactions by custom date range
+  getTransactionsByCustomRange: (startDate, endDate) => {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT 
+          o.id AS orderId,
+          o.userId,
+          u.username,
+          u.email,
+          o.paymentMethod,
+          o.subtotal,
+          o.shipping,
+          o.total,
+          o.createdAt,
+          DATE_FORMAT(o.createdAt, '%Y-%m-%d %H:%i') as formattedDate
+        FROM orders o
+        LEFT JOIN users u ON u.id = o.userId
+        WHERE DATE(o.createdAt) BETWEEN ? AND ?
+        ORDER BY o.createdAt DESC
+      `;
+      
+      db.query(sql, [startDate, endDate], (err, results) => {
+        if (err) {
+          console.error('Error fetching transactions by custom range:', err);
+          return reject(err);
+        }
+        resolve(results || []);
+      });
+    });
   }
 };

@@ -158,18 +158,76 @@ app.get('/orderHistory', checkAuthenticated, redirectAdminToDashboard, OrderCont
 app.get('/invoice/:id', checkAuthenticated, redirectAdminToDashboard, OrderController.showInvoiceDetails);
 
 // Admin Dashboard Routes (with alias)
+const Product = require('./models/Products');
+const User = require('./models/User');
+const Order = require('./models/order');
+
 app.get('/admin/dashboard',
     checkAuthenticated,
     checkAuthorised(['admin']),
-    (req, res) => {
-        res.render('adminDashboard', { user: req.session.user });
+    async (req, res) => {
+        try {
+            console.log('Loading admin dashboard...');
+            const productCount = await Product.getCount();
+            console.log('Product count:', productCount);
+            const userCount = await User.getCount();
+            console.log('User count:', userCount);
+            const monthlyOrderCount = await Order.getMonthlyOrderCount();
+            console.log('Monthly order count:', monthlyOrderCount);
+            const monthlyEarnings = await Order.getMonthlyEarnings();
+            console.log('Monthly earnings:', monthlyEarnings);
+
+            res.render('adminDashboard', { 
+                user: req.session.user,
+                productCount: productCount || 0,
+                userCount: userCount || 0,
+                orderCount: monthlyOrderCount || 0,
+                monthlyEarnings: (parseFloat(monthlyEarnings) || 0).toFixed(2)
+            });
+        } catch (err) {
+            console.error('Error loading dashboard:', err);
+            res.render('adminDashboard', { 
+                user: req.session.user,
+                productCount: 0,
+                userCount: 0,
+                orderCount: 0,
+                monthlyEarnings: '0.00'
+            });
+        }
     }
 );
 app.get('/adminDashboard',
     checkAuthenticated,
     checkAuthorised(['admin']),
-    (req, res) => {
-        res.render('adminDashboard', { user: req.session.user });
+    async (req, res) => {
+        try {
+            console.log('Loading admin dashboard...');
+            const productCount = await Product.getCount();
+            console.log('Product count:', productCount);
+            const userCount = await User.getCount();
+            console.log('User count:', userCount);
+            const monthlyOrderCount = await Order.getMonthlyOrderCount();
+            console.log('Monthly order count:', monthlyOrderCount);
+            const monthlyEarnings = await Order.getMonthlyEarnings();
+            console.log('Monthly earnings:', monthlyEarnings);
+
+            res.render('adminDashboard', { 
+                user: req.session.user,
+                productCount: productCount || 0,
+                userCount: userCount || 0,
+                orderCount: monthlyOrderCount || 0,
+                monthlyEarnings: (parseFloat(monthlyEarnings) || 0).toFixed(2)
+            });
+        } catch (err) {
+            console.error('Error loading dashboard:', err);
+            res.render('adminDashboard', { 
+                user: req.session.user,
+                productCount: 0,
+                userCount: 0,
+                orderCount: 0,
+                monthlyEarnings: '0.00'
+            });
+        }
     }
 );
 
@@ -188,6 +246,36 @@ app.get('/admin/users',
     checkAuthenticated,
     checkAuthorised(['admin']),
     UserController.listUsers
+);
+
+// Admin Transactions Route
+app.get('/admin/transactions',
+    checkAuthenticated,
+    checkAuthorised(['admin']),
+    async (req, res) => {
+        try {
+            const filterType = req.query.filter || 'month';
+            const transactions = await Order.getTransactionsByDateRange(filterType);
+            
+            res.render('adminTransactions', {
+                user: req.session.user,
+                transactions: transactions,
+                currentFilter: filterType,
+                totalTransactions: transactions.length,
+                totalEarnings: transactions.reduce((sum, t) => sum + parseFloat(t.total), 0).toFixed(2)
+            });
+        } catch (err) {
+            console.error('Error loading transactions:', err);
+            res.render('adminTransactions', {
+                user: req.session.user,
+                transactions: [],
+                currentFilter: 'month',
+                totalTransactions: 0,
+                totalEarnings: '0.00',
+                error: 'Failed to load transactions'
+            });
+        }
+    }
 );
 
 // DELETE PRODUCT (admin only)

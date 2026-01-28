@@ -60,5 +60,18 @@ module.exports = {
    reduceQuantity: (productId, qty, callback) => {
     const sql = 'UPDATE products SET quantity = quantity - ? WHERE id = ? AND quantity >= ?';
     db.query(sql, [qty, productId, qty], callback);  // Ensures the quantity doesn't go negative
+  },
+
+  getCount: () => {
+    return new Promise((resolve, reject) => {
+      db.query('SELECT COUNT(*) as count FROM products', (err, results) => {
+        if (err) {
+          console.error('Error getting product count:', err);
+          return reject(err);
+        }
+        const count = results && results[0] ? results[0].count : 0;
+        resolve(count);
+      });
+    });
   }
 };
