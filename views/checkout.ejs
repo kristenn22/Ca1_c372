@@ -41,10 +41,11 @@
       <!-- LEFT SIDE -->
       <div class="left-section">
 
-        <form id="checkoutForm" method="POST">
+        <form id="checkoutForm" method="POST" action="/generateNETSQR">
 
           <label class="form-label mt-3">Shipping Address:</label>
           <input type="text" class="form-control" name="address" required>
+          <input type="hidden" name="cartTotal" id="netsCartTotal" value="<%= total.toFixed(2) %>">
 
         </form>
 
@@ -203,40 +204,27 @@
     }
 
     // NETS QR Button Handler
-    document.getElementById('netsQrBtn').addEventListener('click', async (e) => {
+    const checkoutForm = document.getElementById('checkoutForm');
+    const netsCartTotalInput = document.getElementById('netsCartTotal');
+
+    document.getElementById('netsQrBtn').addEventListener('click', (e) => {
       e.preventDefault();
-      
+
       const address = getAddress();
       if (!address) {
         alert('Please enter a shipping address');
         return;
       }
 
-      // Get the total amount from the right section
       const cartTotal = getCartTotal();
-
       console.log('Initiating NETS QR payment with total:', cartTotal);
 
-      try {
-        // Send POST request to generate QR code
-        const response = await fetch('/generateNETSQR', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ cartTotal: cartTotal })
-        });
+      if (netsCartTotalInput) {
+        netsCartTotalInput.value = cartTotal.toFixed(2);
+      }
 
-        if (response.ok) {
-          // Get the HTML response and render it
-          const html = await response.text();
-          document.documentElement.innerHTML = html;
-        } else {
-          alert('Failed to generate QR code. Please try again.');
-        }
-      } catch (error) {
-        console.error('Error generating QR code:', error);
-        alert('An error occurred. Please try again.');
+      if (checkoutForm) {
+        checkoutForm.submit();
       }
     });
   </script>

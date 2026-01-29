@@ -366,11 +366,104 @@ app.get('/admin/transactions',
 app.get('/products/delete/:id', checkAuthenticated, checkAuthorised(['admin']), ProductController.deleteProduct);
 
 // NETS QR Payment Routes
-app.post('/generateNETSQR', netsQr.generateQrCode);
-app.get("/nets-qr/success", (req, res) => {
-    res.render('netsTxnSuccessStatus', { message: 'Transaction Successful!' });
+app.post('/generateNETSQR', checkAuthenticated, redirectAdminToDashboard, async (req, res) => {
+    try {
+        const userId = req.session.user?.id || req.session.user?.userId || req.session.user?.ID;
+        if (!userId) {
+            req.flash('error', 'Please log in to continue');
+            return res.redirect('/login');
+        }
+
+        const Cart = require('./models/Cart');
+        const cart = req.session.cart && req.session.cart.length > 0
+            ? req.session.cart
+            : await Cart.getCart(userId);
+
+        if (!cart || !cart.length) {
+            req.flash('error', 'Your cart is empty');
+            return res.redirect('/shopping');
+        }
+
+        const address = (req.body.address || '').trim();
+        if (!address) {
+            req.flash('error', 'Please provide a shipping address');
+            return res.redirect('/cart/checkout');
+        }
+
+        const subtotal = cart.reduce((sum, item) => {
+            const qty = item.quantity ?? item.qty ?? 0;
+            return sum + item.price * qty;
+        }, 0);
+        const shipping = 3.99;
+        const total = subtotal + shipping;
+
+        req.session.pendingOrder = {
+            cart,
+            address,
+            paymentMethod: 'NETS QR'
+        };
+
+        return netsQr.generateQrCode(req, res, total);
+    } catch (err) {
+        console.error('generateNETSQR error:', err);
+        req.flash('error', 'Could not start NETS QR payment. Please try again.');
+        return res.redirect('/cart/checkout');
+    }
 });
-app.get("/nets-qr/fail", (req, res) => {
+
+app.get("/nets-qr/success", checkAuthenticated, redirectAdminToDashboard, async (req, res) => {
+    try {
+        const pending = req.session.pendingOrder;
+        if (!pending?.cart?.length) {
+            req.flash('error', 'No pending NETS order found.');
+            return res.redirect('/cart/checkout');
+        }
+
+        const userId = req.session.user?.id || req.session.user?.userId || req.session.user?.ID;
+        if (!userId) {
+            req.flash('error', 'Please log in to continue');
+            return res.redirect('/login');
+        }
+
+        const Order = require('./models/order');
+        const Cart = require('./models/Cart');
+        const Product = require('./models/Products');
+
+        const cart = pending.cart;
+        const subtotal = cart.reduce((sum, item) => {
+            const qty = item.quantity ?? item.qty ?? 0;
+            return sum + item.price * qty;
+        }, 0);
+        const shipping = 3.99;
+        const total = subtotal + shipping;
+
+        const orderId = await Order.createOrder(userId, pending.address, 'NETS QR', subtotal, shipping, total);
+
+        for (const item of cart) {
+            const qty = item.quantity ?? item.qty ?? 1;
+            await Order.addOrderItem(orderId, item.id, item.name, item.price, qty);
+            await new Promise((resolve, reject) => {
+                Product.reduceQuantity(item.id, qty, (err) => {
+                    if (err) return reject(err);
+                    resolve();
+                });
+            });
+        }
+
+        req.session.cart = [];
+        await Cart.clearCart(userId);
+        req.session.pendingOrder = null;
+
+        return res.redirect(`/order-success/${orderId}`);
+    } catch (err) {
+        console.error('NETS order completion error:', err);
+        req.flash('error', 'Order failed. Please try again.');
+        return res.redirect('/cart/checkout');
+    }
+});
+
+app.get("/nets-qr/fail", checkAuthenticated, redirectAdminToDashboard, (req, res) => {
+    req.session.pendingOrder = null;
     res.render('netsTxnFailStatus', { message: 'Transaction Failed. Please try again.' });
 });
 
