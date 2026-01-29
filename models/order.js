@@ -35,9 +35,13 @@ module.exports = {
   //get orders by user
   getOrdersByUser: (userId, callback) => {
     const sql = `
-      SELECT * FROM orders
-      WHERE userId = ?
-      ORDER BY createdAt DESC
+      SELECT 
+        o.*,
+        rc.status AS refundStatus
+      FROM orders o
+      LEFT JOIN refund_concerns rc ON rc.orderId = o.id
+      WHERE o.userId = ?
+      ORDER BY o.createdAt DESC
     `;
     db.query(sql, [userId], callback);
   },
@@ -51,8 +55,14 @@ module.exports = {
         o.paymentMethod, 
         o.subtotal, 
         o.shipping, 
-        o.total, 
+        o.total,
+        o.status,
+        o.isDelivered,
+        o.deliveryConfirmedAt,
+        o.isPaymentReleased,
+        o.paymentReleasedAt,
         o.createdAt,
+        oi.id AS orderItemId,
         oi.productName,
         oi.price,
         oi.quantity
@@ -73,6 +83,8 @@ module.exports = {
         u.email,
         o.address,
         o.paymentMethod,
+        o.status,
+        o.isDelivered,
         o.subtotal,
         o.shipping,
         o.total,
@@ -224,6 +236,306 @@ module.exports = {
           return reject(err);
         }
         resolve(results || []);
+      });
+    });
+  },
+
+  // Update order status (admin)
+  updateOrderStatus: (orderId, newStatus) => {
+    return new Promise((resolve, reject) => {
+      const sql = `UPDATE orders SET status = ? WHERE id = ?`;
+      db.query(sql, [newStatus, orderId], (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      });
+    });
+  },
+
+  // Confirm delivery by user
+  confirmDelivery: (orderId) => {
+    return new Promise((resolve, reject) => {
+      const sql = `UPDATE orders SET isDelivered = TRUE, deliveryConfirmedAt = NOW(), status = 'Delivered' WHERE id = ?`;
+      db.query(sql, [orderId], (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      });
+    });
+  },
+
+  // Release payment to seller
+  releasePayment: (orderId) => {
+    return new Promise((resolve, reject) => {
+      const sql = `UPDATE orders SET isPaymentReleased = TRUE, paymentReleasedAt = NOW() WHERE id = ?`;
+      db.query(sql, [orderId], (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      });
+    });
+  },
+
+  // Get order details by ID
+  getOrderById: (orderId) => {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT * FROM orders WHERE id = ?`;
+      db.query(sql, [orderId], (err, results) => {
+        if (err) return reject(err);
+        resolve(results && results[0] ? results[0] : null);
+      });
+    });
+  },
+
+  // Add refund concern
+  addRefundConcern: (orderId, userId, reason, description, imagePath, refundType, refundItems, refundAmount) => {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        INSERT INTO refund_concerns (orderId, userId, reason, description, imagePath, refundType, refundItems, refundAmount, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending')
+      `;
+      console.log('Inserting refund concern with:', { orderId, userId, reason, description, imagePath, refundType, refundItems, refundAmount });
+      db.query(sql, [orderId, userId, reason, description, imagePath, refundType, refundItems, refundAmount], (err, result) => {
+        if (err) {
+          console.error('Error inserting refund concern:', err);
+          return reject(err);
+        }
+        console.log('Refund concern inserted with ID:', result.insertId);
+        resolve(result.insertId);
+      });
+    });
+  },
+
+  // Calculate refund amount for selected items
+  getRefundItemsTotal: (orderId, itemIds) => {
+    return new Promise((resolve, reject) => {
+      if (!itemIds || !itemIds.length) return resolve(0);
+      const placeholders = itemIds.map(() => '?').join(',');
+      const sql = `
+        SELECT COALESCE(SUM(price * quantity), 0) AS refundAmount
+        FROM order_items
+        WHERE orderId = ? AND id IN (${placeholders})
+      `;
+      db.query(sql, [orderId, ...itemIds], (err, results) => {
+        if (err) return reject(err);
+        const amount = results && results[0] ? Number(results[0].refundAmount || 0) : 0;
+        resolve(amount);
+      });
+    });
+  },
+
+  // Get refund concerns for an order
+  getRefundConcernsByOrder: (orderId, callback) => {
+    const sql = `
+      SELECT * FROM refund_concerns
+      WHERE orderId = ?
+      ORDER BY createdAt DESC
+    `;
+    db.query(sql, [orderId], callback);
+  },
+
+  // Get all refund concerns (admin)
+  getAllRefundConcerns: (callback) => {
+    const sql = `
+      SELECT 
+        rc.id,
+        rc.orderId,
+        rc.userId,
+        rc.reason,
+        rc.description,
+        rc.imagePath,
+        rc.refundType,
+        rc.refundItems,
+        rc.refundAmount,
+        rc.status,
+        rc.createdAt,
+        rc.resolvedAt,
+        u.username,
+        u.email,
+        o.total,
+        COUNT(DISTINCT oi.id) AS itemCount,
+        GROUP_CONCAT(oi.productName SEPARATOR ', ') AS refundItemNames
+      FROM refund_concerns rc
+      LEFT JOIN users u ON u.id = rc.userId
+      LEFT JOIN orders o ON o.id = rc.orderId
+      LEFT JOIN order_items oi ON o.id = oi.orderId
+      GROUP BY rc.id
+      ORDER BY rc.createdAt DESC
+    `;
+    db.query(sql, [], (err, concerns) => {
+      if (err) return callback(err);
+      
+      // For each concern, fetch all items for that order
+      if (!concerns || concerns.length === 0) return callback(null, concerns);
+      
+      let processedCount = 0;
+      const processedConcerns = [];
+      
+      concerns.forEach(concern => {
+        const itemSql = `
+          SELECT 
+            oi.id AS orderItemId,
+            oi.productName,
+            oi.price,
+            oi.quantity
+          FROM order_items oi
+          WHERE oi.orderId = ?
+        `;
+        db.query(itemSql, [concern.orderId], (err, items) => {
+          if (!err) concern.items = items;
+          processedCount++;
+          if (processedCount === concerns.length) {
+            callback(null, concerns);
+          }
+        });
+      });
+    });
+  },
+
+  // Get recent refunded items for dashboard
+  getRecentRefundedItems: (limit = 6) => {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT 
+          rh.id,
+          rh.amount,
+          rh.createdAt,
+          rc.orderId,
+          rc.refundType,
+          rc.refundItems,
+          GROUP_CONCAT(oi.productName SEPARATOR ', ') AS refundItemNames
+        FROM refund_history rh
+        JOIN refund_concerns rc ON rc.id = rh.concernId
+        LEFT JOIN order_items oi ON FIND_IN_SET(oi.id, rc.refundItems)
+        GROUP BY rh.id, rh.amount, rh.createdAt, rc.orderId, rc.refundType, rc.refundItems
+        ORDER BY rh.createdAt DESC
+        LIMIT ?
+      `;
+      db.query(sql, [limit], (err, results) => {
+        if (err) return reject(err);
+        resolve(results || []);
+      });
+    });
+  },
+
+  // Approve refund
+  approveRefund: (concernId, orderId, amount) => {
+    return new Promise((resolve, reject) => {
+      // Update concern status
+      const updateConcernSQL = `
+        UPDATE refund_concerns 
+        SET status = 'Approved', resolvedAt = NOW()
+        WHERE id = ?
+      `;
+
+      db.query(updateConcernSQL, [concernId], (err) => {
+        if (err) return reject(err);
+
+        // Create refund history record
+        const createHistorySQL = `
+          INSERT INTO refund_history (concernId, orderId, userId, amount, refundStatus)
+          SELECT id, ?, userId, ?, 'Processed'
+          FROM refund_concerns WHERE id = ?
+        `;
+
+        db.query(createHistorySQL, [orderId, amount, concernId], (err, result) => {
+          if (err) return reject(err);
+          resolve(result);
+        });
+      });
+    });
+  },
+
+  // Reject refund
+  rejectRefund: (concernId) => {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        UPDATE refund_concerns 
+        SET status = 'Rejected', resolvedAt = NOW()
+        WHERE id = ?
+      `;
+      db.query(sql, [concernId], (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      });
+    });
+  },
+
+  // Get refund history for an order
+  getRefundHistory: (orderId, callback) => {
+    const sql = `
+      SELECT * FROM refund_history
+      WHERE orderId = ?
+      ORDER BY createdAt DESC
+    `;
+    db.query(sql, [orderId], callback);
+  },
+
+  // Check if user can raise concern for an order
+  canRaiseConcern: (orderId, userId) => {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT id FROM orders
+        WHERE id = ? 
+          AND userId = ? 
+          AND isDelivered = TRUE
+          AND DATEDIFF(NOW(), createdAt) <= 14
+      `;
+      db.query(sql, [orderId, userId], (err, results) => {
+        if (err) return reject(err);
+        resolve(results && results.length > 0);
+      });
+    });
+  },
+
+  // Auto-confirm delivery for orders older than 2 weeks with no refund concern
+  autoConfirmOldOrders: () => {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        UPDATE orders o
+        SET o.status = 'Delivered', 
+            o.isDelivered = TRUE, 
+            o.deliveryConfirmedAt = NOW()
+        WHERE o.status = 'Out for Delivery'
+          AND o.createdAt <= DATE_SUB(NOW(), INTERVAL 2 WEEK)
+          AND o.isDelivered = FALSE
+          AND NOT EXISTS (
+            SELECT 1 FROM refund_concerns rc 
+            WHERE rc.orderId = o.id
+          )
+      `;
+      db.query(sql, (err, result) => {
+        if (err) return reject(err);
+        console.log(`Auto-confirmed ${result.affectedRows} old orders`);
+        resolve(result.affectedRows);
+      });
+    });
+  },
+
+  // Check if order is older than 2 weeks
+  isOrderOlderThanTwoWeeks: (orderId) => {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT 
+          DATEDIFF(NOW(), createdAt) > 14 as isOld
+        FROM orders
+        WHERE id = ?
+      `;
+      db.query(sql, [orderId], (err, results) => {
+        if (err) return reject(err);
+        resolve(results && results[0] && results[0].isOld === 1);
+      });
+    });
+  },
+
+  getRefundConcernByOrderId: (orderId) => {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT * FROM refund_concerns
+        WHERE orderId = ?
+        ORDER BY createdAt DESC
+        LIMIT 1
+      `;
+      db.query(sql, [orderId], (err, results) => {
+        if (err) return reject(err);
+        resolve(results && results[0] ? results[0] : null);
       });
     });
   }

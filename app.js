@@ -29,6 +29,38 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// multer (for refund concern images)
+const refundStorage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, path.join(__dirname, 'public', 'images', 'refunds')),
+    filename: (req, file, cb) => {
+        const timestamp = Date.now();
+        const randomStr = Math.random().toString(36).substring(7);
+        cb(null, `refund-${timestamp}-${randomStr}-${file.originalname}`);
+    }
+});
+const refundUpload = multer({ 
+    storage: refundStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: (req, file, cb) => {
+        const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (allowedMimes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed'));
+        }
+    }
+});
+
+const refundUploadSingle = (req, res, next) => {
+    refundUpload.single('image')(req, res, (err) => {
+        if (err) {
+            req.flash('error', err.message || 'Image upload failed');
+            return res.redirect(`/invoice/${req.params.id}`);
+        }
+        next();
+    });
+};
+
 // session + flash
 app.use(session({
     secret: process.env.SESSION_SECRET || 'secret',
@@ -37,6 +69,14 @@ app.use(session({
     cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
 app.use(flash());
+
+// Create refunds directory if it doesn't exist
+const fs = require('fs');
+const refundsDir = path.join(__dirname, 'public', 'images', 'refunds');
+if (!fs.existsSync(refundsDir)) {
+    fs.mkdirSync(refundsDir, { recursive: true });
+    console.log('Created refunds directory');
+}
 
 // expose session and flash messages to views
 app.use((req, res, next) => {
@@ -157,10 +197,48 @@ app.get('/invoices', checkAuthenticated, redirectAdminToDashboard, OrderControll
 app.get('/orderHistory', checkAuthenticated, redirectAdminToDashboard, OrderController.showInvoices); // legacy path
 app.get('/invoice/:id', checkAuthenticated, redirectAdminToDashboard, OrderController.showInvoiceDetails);
 
+// User order status tracking routes
+app.post('/order/:id/confirm-delivery', checkAuthenticated, redirectAdminToDashboard, OrderController.confirmDelivery);
+app.post('/order/:id/release-payment', checkAuthenticated, redirectAdminToDashboard, OrderController.releasePayment);
+app.post('/order/:id/raise-concern', checkAuthenticated, redirectAdminToDashboard, refundUploadSingle, OrderController.raiseRefundConcern);
+
+// Admin order status tracking routes
+app.post('/admin/order/:id/update-status', 
+    checkAuthenticated, 
+    checkAuthorised(['admin']), 
+    OrderController.updateOrderStatus
+);
+
+// Admin refund concerns routes
+app.get('/admin/refund-concerns',
+    checkAuthenticated,
+    checkAuthorised(['admin']),
+    OrderController.viewRefundConcerns
+);
+app.post('/admin/refund/:id/approve',
+    checkAuthenticated,
+    checkAuthorised(['admin']),
+    OrderController.approveRefund
+);
+app.post('/admin/refund/:id/reject',
+    checkAuthenticated,
+    checkAuthorised(['admin']),
+    OrderController.rejectRefund
+);
+
 // Admin Dashboard Routes (with alias)
 const Product = require('./models/Products');
 const User = require('./models/User');
 const Order = require('./models/order');
+
+// Auto-confirm old orders every hour
+setInterval(async () => {
+    try {
+        await Order.autoConfirmOldOrders();
+    } catch (err) {
+        console.error('Error auto-confirming old orders:', err);
+    }
+}, 3600000); // Run every hour (3600000 ms)
 
 app.get('/admin/dashboard',
     checkAuthenticated,
@@ -175,6 +253,7 @@ app.get('/admin/dashboard',
             const monthlyOrderCount = await Order.getMonthlyOrderCount();
             console.log('Monthly order count:', monthlyOrderCount);
             const monthlyEarnings = await Order.getMonthlyEarnings();
+            const recentRefunds = await Order.getRecentRefundedItems();
             console.log('Monthly earnings:', monthlyEarnings);
 
             res.render('adminDashboard', { 
@@ -182,7 +261,8 @@ app.get('/admin/dashboard',
                 productCount: productCount || 0,
                 userCount: userCount || 0,
                 orderCount: monthlyOrderCount || 0,
-                monthlyEarnings: (parseFloat(monthlyEarnings) || 0).toFixed(2)
+                monthlyEarnings: (parseFloat(monthlyEarnings) || 0).toFixed(2),
+                recentRefunds
             });
         } catch (err) {
             console.error('Error loading dashboard:', err);
@@ -191,7 +271,8 @@ app.get('/admin/dashboard',
                 productCount: 0,
                 userCount: 0,
                 orderCount: 0,
-                monthlyEarnings: '0.00'
+                monthlyEarnings: '0.00',
+                recentRefunds: []
             });
         }
     }
@@ -209,6 +290,7 @@ app.get('/adminDashboard',
             const monthlyOrderCount = await Order.getMonthlyOrderCount();
             console.log('Monthly order count:', monthlyOrderCount);
             const monthlyEarnings = await Order.getMonthlyEarnings();
+            const recentRefunds = await Order.getRecentRefundedItems();
             console.log('Monthly earnings:', monthlyEarnings);
 
             res.render('adminDashboard', { 
@@ -216,7 +298,8 @@ app.get('/adminDashboard',
                 productCount: productCount || 0,
                 userCount: userCount || 0,
                 orderCount: monthlyOrderCount || 0,
-                monthlyEarnings: (parseFloat(monthlyEarnings) || 0).toFixed(2)
+                monthlyEarnings: (parseFloat(monthlyEarnings) || 0).toFixed(2),
+                recentRefunds
             });
         } catch (err) {
             console.error('Error loading dashboard:', err);
@@ -225,7 +308,8 @@ app.get('/adminDashboard',
                 productCount: 0,
                 userCount: 0,
                 orderCount: 0,
-                monthlyEarnings: '0.00'
+                monthlyEarnings: '0.00',
+                recentRefunds: []
             });
         }
     }

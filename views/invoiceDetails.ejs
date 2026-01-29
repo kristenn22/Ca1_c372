@@ -4,6 +4,42 @@
   <meta charset="UTF-8">
   <title>Invoice #<%= rows[0].orderId %></title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .status-badge {
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+    }
+    .status-pending { background-color: #ffc107; }
+    .status-packed { background-color: #17a2b8; }
+    .status-delivering { background-color: #0275d8; }
+    .status-delivered { background-color: #28a745; }
+    .status-refunded { background-color: #dc3545; }
+    .timeline {
+      position: relative;
+      padding: 20px 0;
+    }
+    .timeline-item {
+      margin-bottom: 30px;
+      padding-left: 40px;
+      position: relative;
+    }
+    .timeline-item:before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 5px;
+      width: 20px;
+      height: 20px;
+      background: #ddd;
+      border-radius: 50%;
+    }
+    .timeline-item.active:before {
+      background: #28a745;
+    }
+    .timeline-item.completed:before {
+      background: #17a2b8;
+    }
+  </style>
 </head>
 
 <body>
@@ -11,11 +47,24 @@
 <!-- NAVBAR -->
 <%- include('partials/navbar') %>
 
+<div class="container mt-3">
+  <%- include('partials/flash') %>
+</div>
+
 <div class="container mt-5 mb-5">
 
   <div class="card shadow-sm">
     <div class="card-header bg-primary text-white">
-      <h3 class="mb-0">Invoice #<%= rows[0].orderId %></h3>
+      <div class="d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">Invoice #<%= rows[0].orderId %></h3>
+        <span class="badge status-badge <% 
+          if (rows[0].status === 'Pending') { %>status-pending<% } 
+          else if (rows[0].status === 'Packed') { %>status-packed<% } 
+          else if (rows[0].status === 'Out for Delivery') { %>status-delivering<% } 
+          else if (rows[0].status === 'Delivered') { %>status-delivered<% }
+          else if (rows[0].status === 'Refunded') { %>status-refunded<% } 
+        %>"><%= rows[0].status || 'Pending' %></span>
+      </div>
     </div>
 
     <div class="card-body">
@@ -26,6 +75,29 @@
           <p><strong>Date:</strong> <%= rows[0].createdAt.toLocaleString() %></p>
           <p><strong>Address:</strong> <%= rows[0].address %></p>
           <p><strong>Payment Method:</strong> <%= rows[0].paymentMethod %></p>
+        </div>
+      </div>
+
+      <hr>
+
+      <!-- Order Status Timeline -->
+      <h5 class="mb-3">Delivery Status</h5>
+      <div class="timeline">
+        <div class="timeline-item <%= rows[0].status && ['Packed', 'Out for Delivery', 'Delivered', 'Refunded'].includes(rows[0].status) ? 'completed' : '' %>">
+          <strong>Order Confirmed</strong>
+          <p class="text-muted small">Order placed and payment received</p>
+        </div>
+        <div class="timeline-item <%= rows[0].status && ['Out for Delivery', 'Delivered', 'Refunded'].includes(rows[0].status) ? 'completed' : (rows[0].status === 'Packed' ? 'active' : '') %>">
+          <strong>Packed</strong>
+          <p class="text-muted small">Order is being prepared for shipment</p>
+        </div>
+        <div class="timeline-item <%= rows[0].status && ['Delivered', 'Refunded'].includes(rows[0].status) ? 'completed' : (rows[0].status === 'Out for Delivery' ? 'active' : '') %>">
+          <strong>Out for Delivery</strong>
+          <p class="text-muted small">Your order is on its way</p>
+        </div>
+        <div class="timeline-item <%= rows[0].status === 'Delivered' ? 'active' : '' %>">
+          <strong>Delivered</strong>
+          <p class="text-muted small">Order delivered to your address</p>
         </div>
       </div>
 
@@ -63,6 +135,48 @@
 
       </div>
 
+      <!-- Delivery Confirmation -->
+      <% if (rows[0].status === 'Out for Delivery' && !rows[0].isDelivered) { %>
+        <% if (typeof isOld !== 'undefined' && isOld) { %>
+          <div class="alert alert-warning mt-4">
+            <strong>⏰ Order is over 2 weeks old</strong>
+            <p class="mb-2">This order will be automatically marked as delivered. Refresh the page to see the updated status.</p>
+          </div>
+        <% } else { %>
+          <div class="alert alert-info mt-4">
+            <strong>Ready to confirm delivery?</strong>
+            <p class="mb-2">Once you confirm delivery, you'll have the option to raise refund concerns or the payment will be released to the seller.</p>
+            <p class="small text-muted">Note: If not confirmed within 2 weeks, order will be automatically marked as delivered.</p>
+            <form action="/order/<%= rows[0].orderId %>/confirm-delivery" method="POST" style="display: inline;">
+              <button type="submit" class="btn btn-success">Confirm Delivery</button>
+            </form>
+          </div>
+        <% } %>
+      <% } else if (rows[0].isDelivered && !rows[0].isPaymentReleased) { %>
+        <div class="alert alert-success mt-4">
+          <strong>Delivery Confirmed!</strong>
+          <p class="mb-2">
+            <% if (rows[0].status === 'Delivered') { %>
+              <% if (typeof hasPendingConcern !== 'undefined' && hasPendingConcern) { %>
+                Your refund concern is being reviewed by the seller.
+              <% } else { %>
+                No issues raised. Payment will be released to the seller.
+              <% } %>
+            <% } %>
+          </p>
+          <div>
+            <% if (typeof isOld === 'undefined' || !isOld) { %>
+              <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#refundModal">Raise Refund Concern</button>
+            <% } %>
+          </div>
+        </div>
+      <% } else if (rows[0].isPaymentReleased) { %>
+        <div class="alert alert-success mt-4">
+          <strong>✓ Order Completed</strong>
+          <p class="mb-0">Payment has been released to the seller.</p>
+        </div>
+      <% } %>
+
     </div>
   </div>
 
@@ -71,6 +185,46 @@
     <button type="button" class="btn btn-danger text-white" onclick="window.print()">Print</button>
   </div>
 
+</div>
+
+<!-- Refund Concern Modal -->
+<div class="modal fade" id="refundModal" tabindex="-1" aria-labelledby="refundModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="refundModalLabel">Raise Refund Concern</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="/order/<%= rows[0].orderId %>/raise-concern" method="POST" enctype="multipart/form-data">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="reason" class="form-label">Reason for Refund</label>
+            <select class="form-select" id="reason" name="reason" required>
+              <option value="">Select a reason...</option>
+              <option value="Defective Product">Defective Product</option>
+              <option value="Wrong Item">Wrong Item</option>
+              <option value="Not as Described">Not as Described</option>
+              <option value="Damaged in Shipping">Damaged in Shipping</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Please describe the issue in detail (minimum 10 characters)" required minlength="10"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="image" class="form-label">Upload Evidence Image <span class="text-danger">*</span></label>
+            <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
+            <small class="text-muted">Please upload an image showing the issue (JPG, PNG, etc.)</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Submit Concern</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

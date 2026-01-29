@@ -17,6 +17,10 @@ db.connect((err) => {
     }
     console.log('Connected to MySQL database');
 
+    // Initialize database tables for order status tracking
+    const migrations = require('./migrations');
+    migrations.initializeTables();
+
     // Ensure cart persistence table exists (idempotent, avoid duplicate FK names)
     const cartTable = 'cart_items';
     db.query('SHOW TABLES LIKE ?', [cartTable], (existsErr, rows) => {

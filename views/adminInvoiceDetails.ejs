@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Invoice #<%= rows[0].orderId %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .status-badge {
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+    }
+    .status-pending { background-color: #ffc107; color: black; }
+    .status-packed { background-color: #17a2b8; color: white; }
+    .status-delivering { background-color: #0275d8; color: white; }
+    .status-delivered { background-color: #28a745; color: white; }
+    .status-refunded { background-color: #dc3545; color: white; }
+  </style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<%- include('partials/navbar') %>
+
+<div class="container mt-5 mb-5">
+
+  <div class="card shadow-sm">
+    <div class="card-header bg-dark text-white">
+      <div class="d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">Invoice #<%= rows[0].orderId %></h3>
+        <span class="badge status-badge <% 
+          if (rows[0].status === 'Pending') { %>status-pending<% } 
+          else if (rows[0].status === 'Packed') { %>status-packed<% } 
+          else if (rows[0].status === 'Out for Delivery') { %>status-delivering<% } 
+          else if (rows[0].status === 'Delivered') { %>status-delivered<% }
+          else if (rows[0].status === 'Refunded') { %>status-refunded<% } 
+        %>"><%= rows[0].status || 'Pending' %></span>
+      </div>
+    </div>
+
+    <div class="card-body">
+
+      <!-- Order Info -->
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <p><strong>Date:</strong> <%= rows[0].createdAt.toLocaleString() %></p>
+          <p><strong>Address:</strong> <%= rows[0].address %></p>
+          <p><strong>Payment Method:</strong> <%= rows[0].paymentMethod %></p>
+        </div>
+        <div class="col-md-6">
+          <p><strong>Delivery Status:</strong> <%= rows[0].isDelivered ? 'Confirmed by Customer' : 'Pending' %></p>
+          <% if (rows[0].deliveryConfirmedAt) { %>
+            <p><strong>Confirmed On:</strong> <%= new Date(rows[0].deliveryConfirmedAt).toLocaleString() %></p>
+          <% } %>
+          <p><strong>Payment Released:</strong> <%= rows[0].isPaymentReleased ? 'Yes' : 'No' %></p>
+          <% if (rows[0].paymentReleasedAt) { %>
+            <p><strong>Released On:</strong> <%= new Date(rows[0].paymentReleasedAt).toLocaleString() %></p>
+          <% } %>
+        </div>
+      </div>
+
+      <hr>
+
+      <!-- Status Management -->
+      <h5 class="mb-3">Update Order Status</h5>
+      <div class="card bg-light mb-4">
+        <div class="card-body">
+          <form action="/admin/order/<%= rows[0].orderId %>/update-status" method="POST" class="d-flex gap-2 flex-wrap">
+            <div class="flex-grow-1">
+              <select name="status" class="form-select" required>
+                <option value="">Select new status...</option>
+                <option value="Pending" <%= rows[0].status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                <option value="Packed" <%= rows[0].status === 'Packed' ? 'selected' : '' %>>Packed</option>
+                <option value="Out for Delivery" <%= rows[0].status === 'Out for Delivery' ? 'selected' : '' %>>Out for Delivery</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Update Status</button>
+          </form>
+        </div>
+      </div>
+
+      <hr>
+
+      <!-- Items Table -->
+      <h5 class="mb-3">Items</h5>
+
+      <table class="table table-bordered text-center align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Price</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <% rows.forEach(item => { %>
+            <tr>
+              <td><%= item.productName %></td>
+              <td><%= item.quantity %></td>
+              <td>$<%= Number(item.price).toFixed(2) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+
+      <div class="mt-4">
+
+        <p class="fs-5"><strong>Subtotal:</strong> $<%= Number(rows[0].subtotal).toFixed(2) %></p>
+        <p class="fs-5"><strong>Shipping:</strong> $<%= Number(rows[0].shipping).toFixed(2) %></p>
+
+        <h4 class="mt-3"><strong>Total: $<%= Number(rows[0].total).toFixed(2) %></strong></h4>
+
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <a href="/admin/orders" class="btn btn-secondary me-2">Back to Orders</a>
+    <a href="/admin/refund-concerns" class="btn btn-warning me-2">View Refund Concerns</a>
+    <button type="button" class="btn btn-danger text-white" onclick="window.print()">Print</button>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

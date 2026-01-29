@@ -189,6 +189,25 @@
             background: #dee2e6;
             color: #333;
         }
+
+        .refund-card {
+            background: white;
+            border: none;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            padding: 16px;
+            height: 100%;
+        }
+
+        .refund-card-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .refund-card-meta {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -279,6 +298,27 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- Refunded Items Section -->
+    <div class="mt-4">
+        <h4 class="mb-3">Refunded Items</h4>
+        <% if (recentRefunds && recentRefunds.length) { %>
+            <div class="row g-3">
+                <% recentRefunds.forEach(refund => { %>
+                    <div class="col-md-4">
+                        <div class="refund-card">
+                            <div class="refund-card-title">Order #<%= refund.orderId %></div>
+                            <div class="refund-card-meta mb-2">Refund: $<%= Number(refund.amount || 0).toFixed(2) %> • <%= refund.refundType || 'Full' %></div>
+                            <div><strong>Items:</strong> <%= refund.refundItemNames || 'All items' %></div>
+                            <div class="refund-card-meta mt-2"><%= new Date(refund.createdAt).toLocaleString() %></div>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <div class="alert alert-info">No refunded items yet.</div>
+        <% } %>
     </div>
 
 </div>
