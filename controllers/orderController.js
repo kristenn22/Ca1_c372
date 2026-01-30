@@ -95,8 +95,10 @@ module.exports = {
           // Check if there's a pending refund concern for this order
           const refundConcern = await Order.getRefundConcernByOrderId(orderId);
           const hasPendingConcern = refundConcern && refundConcern.status === 'Pending';
+          const paymentMethod = rows[0]?.paymentMethod ?? "";
+          const isNetsPayment = paymentMethod.trim().toUpperCase() === 'NETS QR';
           
-          res.render("invoiceDetails", { rows, isOld, hasPendingConcern });
+          res.render("invoiceDetails", { rows, isOld, hasPendingConcern, isNetsPayment });
         });
       }
     } catch (error) {
@@ -173,7 +175,11 @@ module.exports = {
       }
 
       await Order.confirmDelivery(orderId);
-      req.flash('success', 'Delivery confirmed! You can now raise a refund concern if needed or payment will be released to seller.');
+      const isNetsPayment = (order.paymentMethod ?? "").trim().toUpperCase() === 'NETS QR';
+      const successMessage = isNetsPayment
+        ? 'Delivery confirmed! Refund concerns are not available for NETS QR payments. Payment will be released to the seller.'
+        : 'Delivery confirmed! You can now raise a refund concern if needed or payment will be released to seller.';
+      req.flash('success', successMessage);
       res.redirect(`/invoice/${orderId}`);
     } catch (error) {
       console.error("Error confirming delivery:", error);
@@ -225,6 +231,18 @@ module.exports = {
         return res.redirect(`/invoice/${orderId}`);
       }
 
+      const order = await Order.getOrderById(orderId);
+      if (!order || order.userId !== userId) {
+        req.flash('error', 'Unauthorized');
+        return res.redirect('/invoices');
+      }
+
+      const isNetsPayment = (order.paymentMethod ?? "").trim().toUpperCase() === 'NETS QR';
+      if (isNetsPayment) {
+        req.flash('error', 'Refund concerns cannot be raised for NETS QR payments.');
+        return res.redirect(`/invoice/${orderId}`);
+      }
+
       // Verify order belongs to user and is delivered
       const canRaise = await Order.canRaiseConcern(orderId, userId);
       console.log('canRaiseConcern:', canRaise);
@@ -241,8 +259,7 @@ module.exports = {
       // Default to Full refund - admin will decide if partial is appropriate
       const refundType = 'Full';
       const refundItemsCsv = null;
-      const order = await Order.getOrderById(orderId);
-      const refundAmount = order ? Number(order.total || 0) : 0;
+      const refundAmount = Number(order.total || 0);
 
       const imagePath = `/images/refunds/${req.file.filename}`;
       console.log('Creating concern with image:', imagePath);

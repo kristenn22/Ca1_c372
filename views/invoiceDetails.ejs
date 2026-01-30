@@ -145,7 +145,13 @@
         <% } else { %>
           <div class="alert alert-info mt-4">
             <strong>Ready to confirm delivery?</strong>
-            <p class="mb-2">Once you confirm delivery, you'll have the option to raise refund concerns or the payment will be released to the seller.</p>
+            <p class="mb-2">
+              <% if (isNetsPayment) { %>
+                Refund concerns are not available for NETS QR transactions. Confirming delivery will release payment automatically to the seller.
+              <% } else { %>
+                Once you confirm delivery, you'll have the option to raise refund concerns or the payment will be released to the seller.
+              <% } %>
+            </p>
             <p class="small text-muted">Note: If not confirmed within 2 weeks, order will be automatically marked as delivered.</p>
             <form action="/order/<%= rows[0].orderId %>/confirm-delivery" method="POST" style="display: inline;">
               <button type="submit" class="btn btn-success">Confirm Delivery</button>
@@ -159,14 +165,18 @@
             <% if (rows[0].status === 'Delivered') { %>
               <% if (typeof hasPendingConcern !== 'undefined' && hasPendingConcern) { %>
                 Your refund concern is being reviewed by the seller.
+              <% } else if (isNetsPayment) { %>
+                Refund concerns are not available for NETS QR transactions. Payment will be released to the seller shortly.
               <% } else { %>
                 No issues raised. Payment will be released to the seller.
               <% } %>
             <% } %>
           </p>
           <div>
-            <% if (typeof isOld === 'undefined' || !isOld) { %>
+            <% if (!isNetsPayment && (typeof isOld === 'undefined' || !isOld)) { %>
               <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#refundModal">Raise Refund Concern</button>
+            <% } else if (isNetsPayment) { %>
+              <p class="text-muted small mb-0">Refund concerns cannot be raised for NETS QR payments.</p>
             <% } %>
           </div>
         </div>
@@ -187,6 +197,7 @@
 
 </div>
 
+<% if (!isNetsPayment) { %>
 <!-- Refund Concern Modal -->
 <div class="modal fade" id="refundModal" tabindex="-1" aria-labelledby="refundModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -226,6 +237,7 @@
     </div>
   </div>
 </div>
+<% } %>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

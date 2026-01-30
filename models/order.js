@@ -476,6 +476,7 @@ module.exports = {
         WHERE id = ? 
           AND userId = ? 
           AND isDelivered = TRUE
+          AND UPPER(COALESCE(paymentMethod, '')) != 'NETS QR'
           AND DATEDIFF(NOW(), createdAt) <= 14
       `;
       db.query(sql, [orderId, userId], (err, results) => {
